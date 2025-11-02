@@ -87,8 +87,7 @@ export async function POST(request: Request) {
             }
         }
     } catch (error) {
-        console.error("JWT verification failed:", error);
-        return new Response(JSON.stringify({ error: "Invalid or expired token"}));
+        return new Response(JSON.stringify({ error: "Invalid or expired token", e: error }), { status: 401 });
 
     }
 }
