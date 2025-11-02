@@ -171,7 +171,7 @@ export default function EditProjectDialog({ project, onClose, onSave }: EditProj
         let shouldUpdate = false;
 
         try {
-            const response = await postWithTokenNextEndpoint("/project/create", formData);
+            const response = await postWithTokenNextEndpoint("/create/project", formData);
 
             // clear previous badges
             if (formData.description.startsWith("##") && formData.description.indexOf("##", 2) > 2) {
