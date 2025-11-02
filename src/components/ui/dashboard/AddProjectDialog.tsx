@@ -60,11 +60,15 @@ export default function AddProjectDialog() {
                 return;
             }
 
-            if (user?.plan == 'pro') {
-                projectData.description = (precreate.data.format && precreate.data.format != "None") ? `##${precreate.data.format}##${precreate.data.description}` : precreate.data.description;
-                projectData.role = precreate.data.role ?? 'fullstack';
-            } else {
-                projectData.role = precreate.data.role ?? 'fullstack';
+            // Always set role first
+            projectData.role = precreate.data.role ?? 'fullstack';
+
+            // Always set description based on precreate, but hide it for non-pro users
+            if (user?.plan === 'pro') {
+                projectData.description =
+                    precreate.data.format && precreate.data.format !== "None"
+                        ? `##${precreate.data.format}##${precreate.data.description}`
+                        : precreate.data.description;
             }
 
             const response = await postWithToken("/projects", projectData);
