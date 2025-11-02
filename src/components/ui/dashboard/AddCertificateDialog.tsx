@@ -1,0 +1,262 @@
+'use client';
+
+import { useState } from 'react';
+import { RiCloseLine, RiLinksLine } from '@remixicon/react';
+import { usePresetDialog } from "@/lib/dialogs";
+
+import { Button } from '@/components/Button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/Dialog';
+import { Label } from '@/components/Label';
+import { Input } from '@/components/Input';
+import { Textarea } from '@/components/Textarea';
+import { postWithToken, postWithTokenNextEndpoint } from '@/lib/utils';
+import { useUserStore } from '@/store/userStore';
+import { toast } from "@/lib/useToast";
+import { isAxiosError } from 'axios';
+import { useCertificateStore } from '@/store/certificateStore';
+
+export default function AddCertificateDialog() {
+    const [formData, setFormData] = useState({
+        title: '',
+        platform: '',
+        description: '',
+        url: '',
+        completedOn: '',
+    });
+    const [error, setError] = useState<string | null>(null);
+
+    const { user, editCertCount } = useUserStore();
+    const { addCertificate } = useCertificateStore();
+    const PresetDialog = usePresetDialog();
+    const [submitting, setSubmitting] = useState(false);
+
+    const [open, setOpen] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (submitting) return;
+        setSubmitting(true);
+
+        const certificateData = {
+            ...formData,
+            id: "",
+            role: ""
+        };
+
+        try {
+            const precreate = await postWithTokenNextEndpoint("/create/certification", certificateData);
+            if (!precreate || precreate.status !== 200) {
+                PresetDialog("unexpectedError");
+                return;
+            }
+
+            if (user?.plan == 'pro') {
+                certificateData.description = (precreate.data.format && precreate.data.format != "None") ? `##${precreate.data.format}##${certificateData.description}` : certificateData.description;
+            }
+            certificateData.role = precreate.data.role ?? 'fullstack';
+
+            const response = await postWithToken("/certifications", certificateData);
+
+            if (response && response.status === 201) {
+                setFormData({
+                    title: '',
+                    platform: '',
+                    description: '',
+                    url: '',
+                    completedOn: '',
+                });
+                setOpen(false);
+
+                addCertificate(response.data);
+                editCertCount(1, 'increment');
+
+                toast({
+                    title: "Certificate Added",
+                    description: "Your certificate has been successfully added to the system.",
+                    variant: "success",
+                    duration: 4500,
+                });
+            }
+
+        } catch (error) {
+            if (isAxiosError(error)) {
+                if (error.response?.status === 400) {
+                    toast({
+                        title: "Error",
+                        description: error.response?.data?.errors
+                            ? String(Object.values(error.response.data.errors)[0])
+                            : "An error occurred.",
+                        variant: "error",
+                        duration: 6000,
+                    });
+                    setError(Object.keys(error.response.data.errors)[0]);
+                    return;
+                } else if (error.response?.status === 401 || error.response?.status === 403) {
+                    PresetDialog("unauthorized");
+                }
+            } else {
+                PresetDialog("unexpectedError");
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const clearForm = () => {
+        setFormData({
+            title: '',
+            platform: '',
+            description: '',
+            url: '',
+            completedOn: '',
+        });
+        setError(null);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button>Add Certificate</Button>
+            </DialogTrigger>
+            <DialogContent className="!p-0 max-w-[95vw] sm:max-w-md md:max-w-lg">
+                <DialogClose asChild>
+                    <Button
+                        className="!absolute !right-3 !top-3 !p-2 !text-gray-400 hover:!text-gray-500 dark:!text-gray-600 hover:dark:!text-gray-500"
+                        variant="ghost"
+                    >
+                        <RiCloseLine className="size-5 shrink-0" />
+                    </Button>
+                </DialogClose>
+
+                <DialogHeader className="border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4 dark:border-gray-900">
+                    <DialogTitle className="text-base">Add New Certificate</DialogTitle>
+                </DialogHeader>
+
+                <form onSubmit={handleSubmit}>
+                    <div className="flex flex-col max-h-[80vh] overflow-y-auto">
+                        <div className="flex-1 space-y-4 p-4 sm:p-6 sm:space-y-6">
+                            {/* Certificate Title */}
+                            <div>
+                                <Label htmlFor="title" className="font-medium text-sm">
+                                    Certificate Title <span style={{ color: "red" }}>*</span>
+                                </Label>
+                                <Input
+                                    type="text"
+                                    id="title"
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    placeholder="Enter certificate title"
+                                    className="mt-2"
+                                    required
+                                    hasError={error === 'title'}
+                                />
+                            </div>
+
+                            {/* Platform */}
+                            <div>
+                                <Label htmlFor="platform" className="font-medium text-sm">
+                                    Platform <span style={{ color: "red" }}>*</span>
+                                </Label>
+                                <Input
+                                    type="text"
+                                    id="platform"
+                                    name="platform"
+                                    value={formData.platform}
+                                    onChange={handleChange}
+                                    placeholder="e.g., Coursera, Udemy, AWS"
+                                    className="mt-2"
+                                    required
+                                    hasError={error === 'platform'}
+                                />
+                            </div>
+
+                            {/* Certificate URL */}
+                            <div>
+                                <Label htmlFor="url" className="font-medium text-sm">
+                                    Certificate URL <span style={{ color: "red" }}>*</span>
+                                </Label>
+                                <div className="mt-2 flex items-center">
+                                    <RiLinksLine className="mr-2 size-4 text-gray-400 shrink-0" />
+                                    <Input
+                                        type="url"
+                                        id="url"
+                                        name="url"
+                                        value={formData.url}
+                                        onChange={handleChange}
+                                        placeholder="https://example.com/certificate"
+                                        className="flex-1 min-w-0"
+                                        required
+                                        hasError={error === 'url'}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <Label htmlFor="description" className="font-medium text-sm">
+                                    {user?.plan === 'pro' ? "Yap about your certificate!" : "Description"} <span style={{ color: "red" }}>*</span>
+                                </Label>
+                                <Textarea
+                                    id="description"
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    placeholder="Describe what you learned or achieved..."
+                                    className="mt-2 resize-vertical min-h-[80px]"
+                                    rows={3}
+                                    required
+                                    hasError={error === 'description'}
+                                />
+                            </div>
+
+                            {/* Completion Date */}
+                            <div>
+                                <Label htmlFor="completedOn" className="font-medium text-sm">
+                                    Completion Date <span style={{ color: "red" }}>*</span>
+                                </Label>
+                                <Input
+                                    type="date"
+                                    id="completedOn"
+                                    name="completedOn"
+                                    value={formData.completedOn}
+                                    onChange={handleChange}
+                                    className="mt-2"
+                                    required
+                                    hasError={error === 'completedOn'}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-between border-t border-gray-200 p-4 sm:p-6 dark:border-gray-900">
+                            <DialogClose asChild>
+                                <Button type="button" variant="secondary" className="text-sm" onClick={clearForm}>
+                                    Cancel
+                                </Button>
+                            </DialogClose>
+                            <Button type="submit" className="text-sm" isLoading={submitting}>
+                                Add Certificate
+                            </Button>
+                        </div>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
