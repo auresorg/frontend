@@ -133,10 +133,10 @@ export default function AddCertificateDialog() {
             <DialogTrigger asChild>
                 <Button>Add Certificate</Button>
             </DialogTrigger>
-            <DialogContent className="!p-0 max-w-[95vw] sm:max-w-md md:max-w-lg">
+            <DialogContent className="p-0! max-w-[95vw] sm:max-w-md md:max-w-lg">
                 <DialogClose asChild>
                     <Button
-                        className="!absolute !right-3 !top-3 !p-2 !text-gray-400 hover:!text-gray-500 dark:!text-gray-600 hover:dark:!text-gray-500"
+                        className="absolute! right-3! top-3! p-2! text-gray-400! hover:text-gray-500! dark:text-gray-600! hover:dark:text-gray-500!"
                         variant="ghost"
                     >
                         <RiCloseLine className="size-5 shrink-0" />
@@ -218,7 +218,7 @@ export default function AddCertificateDialog() {
                                     value={formData.description}
                                     onChange={handleChange}
                                     placeholder="Describe what you learned or achieved..."
-                                    className="mt-2 resize-vertical min-h-[80px]"
+                                    className="mt-2 resize-vertical min-h-20"
                                     rows={3}
                                     required
                                     hasError={error === 'description'}
