@@ -64,7 +64,7 @@ export default function AddAwardDialog() {
             }
 
             if (user?.plan == 'pro') {
-                awardData.description = (precreate.data.format && precreate.data.format != "None") ? `##${precreate.data.format}##${awardData.description}` : awardData.description;
+                awardData.description = (precreate.data.format && precreate.data.format != "None") ? `##${precreate.data.format}##${precreate.data.description}` : precreate.data.description;
             }
             awardData.role = precreate.data.role ?? 'fullstack';
 
@@ -171,10 +171,10 @@ export default function AddAwardDialog() {
             <DialogTrigger asChild>
                 <Button>Add Award</Button>
             </DialogTrigger>
-            <DialogContent className="!p-0 max-w-[95vw] sm:max-w-md md:max-w-lg">
+            <DialogContent className="p-0! max-w-[95vw] sm:max-w-md md:max-w-lg">
                 <DialogClose asChild>
                     <Button
-                        className="!absolute !right-3 !top-3 !p-2 !text-gray-400 hover:!text-gray-500 dark:!text-gray-600 hover:dark:!text-gray-500"
+                        className="absolute! right-3! top-3! p-2! text-gray-400! hover:text-gray-500! dark:text-gray-600! hover:dark:text-gray-500!"
                         variant="ghost"
                     >
                         <RiCloseLine className="size-5 shrink-0" />
@@ -278,7 +278,7 @@ export default function AddAwardDialog() {
                                     value={formData.description}
                                     onChange={handleChange}
                                     placeholder="Describe your achievement, the competition, or what you accomplished..."
-                                    className="mt-2 resize-vertical min-h-[80px]"
+                                    className="mt-2 resize-vertical min-h-20"
                                     rows={3}
                                     required
                                     hasError={error === 'description'}

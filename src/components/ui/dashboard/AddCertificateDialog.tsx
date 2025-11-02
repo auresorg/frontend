@@ -58,7 +58,7 @@ export default function AddCertificateDialog() {
             }
 
             if (user?.plan == 'pro') {
-                certificateData.description = (precreate.data.format && precreate.data.format != "None") ? `##${precreate.data.format}##${certificateData.description}` : certificateData.description;
+                certificateData.description = (precreate.data.format && precreate.data.format != "None") ? `##${precreate.data.format}##${precreate.data.description}` : precreate.data.description;
             }
             certificateData.role = precreate.data.role ?? 'fullstack';
 
