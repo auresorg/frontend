@@ -45,7 +45,7 @@ export const hasErrorInput = [
 ]
 export const host = process.env.NODE_ENV === 'development' ? "http://localhost:3000" : "https://aures-hwdcfmdzfhfrhna9.centralindia-01.azurewebsites.net";
 
-export const nextBase = process.env.NODE_ENV === 'development' ? "http://localhost:3000" : "https://mango-tree-01080b300.3.azurestaticapps.net";
+export const nextBase = process.env.NODE_ENV === 'development' ? "http://localhost:3000" : "https://calm-pond-02bf0a01e.3.azurestaticapps.net";
 
 export const API = axios.create({
     baseURL: host + "/api",
