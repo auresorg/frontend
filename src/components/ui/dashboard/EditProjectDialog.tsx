@@ -182,22 +182,21 @@ export default function EditProjectDialog({ project, onClose, onSave }: EditProj
             if (response && response.status === 200) {
                 const format = response.data.format;
                 const role = response.data.role;
+                const desc = response.data.description;
 
-                if (format && format !== "None") {
-                    newDescription = `##${format}##${formData.description}`;
+                // ensure shouldUpdate if API description differs or role updated
+                if (desc && desc !== formData.description) {
+                    if (format && format !== "None") {
+                        newDescription = `##${format}##${desc}`;
+                    } else {
+                        newDescription = desc;
+                    }
                     shouldUpdate = true;
                 }
 
-                if (role && role !== "None") {
+                if (role && role !== "None" && role !== formData.role) {
                     newRole = role;
                     shouldUpdate = true;
-                }
-
-                // **Immediately show API response in textarea**
-                if (format && format !== "None") {
-                    setDisplayText(formData.description); // strip badge for typing
-                } else {
-                    setDisplayText(newDescription);
                 }
             }
         } catch (error) {
@@ -223,22 +222,16 @@ export default function EditProjectDialog({ project, onClose, onSave }: EditProj
             const finish = () => {
                 setIsGenerating(false);
                 if (shouldUpdate) {
-                    handleChange({
-                        target: { name: "description", value: newDescription },
-                    } as React.ChangeEvent<HTMLTextAreaElement>);
+                    const stripped = newDescription.startsWith("##")
+                        ? newDescription.substring(newDescription.indexOf("##", 2) + 2).trim()
+                        : newDescription;
 
-                    // **Update displayText to reflect API badge content**
-                    setDisplayText(
-                        newDescription.startsWith("##") && badgeText
-                            ? newDescription.substring(newDescription.indexOf("##", 2) + 2).trim()
-                            : newDescription
-                    );
-
-                    if (newRole !== formData.role) {
-                        handleChange({
-                            target: { name: "role", value: newRole },
-                        } as React.ChangeEvent<HTMLTextAreaElement>);
-                    }
+                    setFormData(prev => ({
+                        ...prev,
+                        description: newDescription,
+                        role: newRole,
+                    }));
+                    setDisplayText(stripped);
                 }
             };
 
@@ -249,6 +242,7 @@ export default function EditProjectDialog({ project, onClose, onSave }: EditProj
             }
         }
     };
+
 
     useEffect(() => {
         if (isGenerating) {

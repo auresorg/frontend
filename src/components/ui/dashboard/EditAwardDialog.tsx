@@ -173,17 +173,22 @@ export default function EditAwardDialog({ award, onClose, onSave }: EditAwardDia
 
             if (response && response.status === 200) {
                 const format = response.data.format;
+                const desc = response.data.description;
 
-                if (format && format !== "None") {
-                    newDescription = `##${format}##${response.data.description}`;
+                if (desc && desc !== formData.description) {
+                    if (format && format !== "None") {
+                        newDescription = `##${format}##${desc}`;
+                    } else {
+                        newDescription = desc;
+                    }
                     shouldUpdate = true;
                 }
 
-                if (format && format !== "None") {
-                    setDisplayText(formData.description);
-                } else {
-                    setDisplayText(newDescription);
-                }
+                setDisplayText(
+                    newDescription.startsWith("##") && format && format !== "None"
+                        ? newDescription.substring(newDescription.indexOf("##", 2) + 2).trim()
+                        : newDescription
+                );
             }
         } catch (error) {
             if (isAxiosError(error)) {

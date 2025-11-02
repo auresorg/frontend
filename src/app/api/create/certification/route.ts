@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         }
 
         const token = authHeader.split(" ")[1];
-        const publicKey = process.env.PUBLIC_KEY?.replace(/\\n/g, '\n');
+        const publicKey = process.env.PUBLIC_KEY?.replace(/\\n/g, '\n')
 
         if (!publicKey) {
             console.error("PUBLIC_KEY not set in environment");

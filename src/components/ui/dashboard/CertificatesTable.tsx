@@ -196,7 +196,7 @@ export default function CertificatesTable() {
                                         <TableCell>
                                             <Button
                                                 variant="ghost"
-                                                className="!p-2"
+                                                className="p-2!"
                                                 onClick={() => handleViewCertificate(item.url)}
                                             >
                                                 <RiExternalLinkLine className="size-4" />
@@ -206,7 +206,7 @@ export default function CertificatesTable() {
                                             <div className="relative flex justify-end">
                                                 <Button
                                                     variant="ghost"
-                                                    className="!p-2"
+                                                    className="p-2!"
                                                     ref={el => { buttonRefs.current[item.id] = el; }}
                                                     onClick={() => openActionMenu(item.id)}
                                                 >
@@ -276,7 +276,7 @@ export default function CertificatesTable() {
                                 <div className="relative">
                                     <Button
                                         variant="ghost"
-                                        className="!p-1"
+                                        className="p-1!"
                                         onClick={() => setActionMenuOpen(actionMenuOpen === item.id ? null : item.id)}
                                     >
                                         <RiMore2Fill className="size-4" />
@@ -326,7 +326,7 @@ export default function CertificatesTable() {
                         <div className="mt-3 flex justify-end">
                             <Button
                                 variant="ghost"
-                                className="!p-2"
+                                className="p-2!"
                                 onClick={() => handleViewCertificate(item.url)}
                             >
                                 <RiExternalLinkLine className="size-4" />
