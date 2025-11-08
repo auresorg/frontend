@@ -1,11 +1,6 @@
+import EntityTable from '@/components/ui/dashboard/EntityTable';
+import { ENTITY_CONFIGS } from '@/lib/entityConfig';
 
-import AwardsTable from '@/components/ui/dashboard/AwardsTable'
-import React from 'react'
-
-function page() {
-  return <>
-  <AwardsTable />
-  </>
+export default function AwardsPage() {
+  return <EntityTable config={ENTITY_CONFIGS.award} />;
 }
-
-export default page

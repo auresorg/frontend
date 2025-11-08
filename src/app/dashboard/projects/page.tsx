@@ -1,10 +1,6 @@
-import ProjectsTable from '@/components/ui/dashboard/ProjectTable'
-import React from 'react'
+import EntityTable from '@/components/ui/dashboard/EntityTable';
+import { ENTITY_CONFIGS } from '@/lib/entityConfig';
 
-function page() {
-  return <>
-  <ProjectsTable />
-  </>
+export default function ProjectsPage() {
+  return <EntityTable config={ENTITY_CONFIGS.project} />;
 }
-
-export default page

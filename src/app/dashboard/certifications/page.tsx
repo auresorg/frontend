@@ -1,10 +1,6 @@
-import CertificatesTable from '@/components/ui/dashboard/CertificatesTable'
-import React from 'react'
+import EntityTable from '@/components/ui/dashboard/EntityTable';
+import { ENTITY_CONFIGS } from '@/lib/entityConfig';
 
-function page() {
-  return <>
-  <CertificatesTable />
-  </>
+export default function CertificationsPage() {
+  return <EntityTable config={ENTITY_CONFIGS.certification} />;
 }
-
-export default page
