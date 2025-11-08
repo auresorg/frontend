@@ -23,8 +23,9 @@ import { useUserStore } from '@/store/userStore';
 import { useAwardStore } from '@/store/awardStore';
 import { useCertificateStore } from '@/store/certificateStore';
 import { useProjectStore } from '@/store/projectStore';
+import { useExperienceStore } from '@/store/experienceStore';
 import { postWithTokenNextEndpoint } from '@/lib/utils';
-import { Award, Certification, Project } from '@/lib/types';
+import { Award, Certification, Project, Experience } from '@/lib/types';
 
 interface AddEntityDialogProps {
     config: EntityConfig;
@@ -39,6 +40,7 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
     const { addAward } = useAwardStore();
     const { addCertificate } = useCertificateStore();
     const { addProject } = useProjectStore();
+    const { addExperience } = useExperienceStore();
 
     // Build initial form state from config
     const initialState = config.formFields.reduce((acc, field) => {
@@ -65,6 +67,9 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
                 editSkills(techArray, "add");
             }
             setUser({ ...user!, projectsCount: (user?.projectsCount ?? 0) + 1 });
+        } else if (config.type === 'experience') {
+            addExperience(data as Experience);
+            setUser({ ...user!, experienceCount: (user?.experienceCount ?? 0) + 1 });
         }
 
         resetForm();

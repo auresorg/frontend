@@ -22,6 +22,7 @@ import { useUserStore } from '@/store/userStore';
 import { useAwardStore } from '@/store/awardStore';
 import { useCertificateStore } from '@/store/certificateStore';
 import { useProjectStore } from '@/store/projectStore';
+import { useExperienceStore } from '@/store/experienceStore';
 import { EntityConfig, Entity } from '@/lib/entityConfig';
 import AddEntityDialog from './AddEntityDialog';
 import EditEntityDialog from './EditEntityDialog';
@@ -44,16 +45,19 @@ export default function EntityTable({ config }: EntityTableProps) {
     const awardStore = useAwardStore();
     const certificateStore = useCertificateStore();
     const projectStore = useProjectStore();
+    const experienceStore = useExperienceStore();
 
     const entities = 
         config.type === 'award' ? awardStore.awards :
         config.type === 'certification' ? certificateStore.certificates :
-        projectStore.projects;
+        config.type === 'project' ? projectStore.projects :
+        experienceStore.experiences;
 
     const hasLoaded = 
         config.type === 'award' ? awardStore.hasLoaded :
         config.type === 'certification' ? certificateStore.hasLoaded :
-        projectStore.hasLoaded;
+        config.type === 'project' ? projectStore.hasLoaded :
+        experienceStore.hasLoaded;
 
     useEffect(() => {
         setIsClient(true);
@@ -76,9 +80,23 @@ export default function EntityTable({ config }: EntityTableProps) {
                         } else if (config.type === 'project') {
                             projectStore.setProjects(response.data);
                             projectStore.setHasLoaded(true);
+                        } else if (config.type === 'experience') {
+                            experienceStore.setExperiences(response.data);
+                            experienceStore.setHasLoaded(true);
                         }
                     }
                 } catch (error) {
+                    // Set hasLoaded to true even on error to prevent infinite retry loop
+                    if (config.type === 'award') {
+                        awardStore.setHasLoaded(true);
+                    } else if (config.type === 'certification') {
+                        certificateStore.setHasLoaded(true);
+                    } else if (config.type === 'project') {
+                        projectStore.setHasLoaded(true);
+                    } else if (config.type === 'experience') {
+                        experienceStore.setHasLoaded(true);
+                    }
+
                     if (isAxiosError(error)) {
                         if (error.response?.status === 401) {
                             localStorage.removeItem("token");
@@ -94,7 +112,8 @@ export default function EntityTable({ config }: EntityTableProps) {
         }
 
         fetchEntities();
-    }, [PresetDialog, hasLoaded, isClient, config.endpoint, config.type, awardStore, certificateStore, projectStore]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [PresetDialog, hasLoaded, isClient, config.endpoint, config.type]);
 
     const openActionMenu = (entityId: string) => {
         const button = buttonRefs.current[entityId];
@@ -139,6 +158,9 @@ export default function EntityTable({ config }: EntityTableProps) {
                             } else if (config.type === 'project') {
                                 projectStore.deleteProject(entityId);
                                 setUser({ ...user!, projectsCount: (user?.projectsCount ?? 0) - 1 });
+                            } else if (config.type === 'experience') {
+                                experienceStore.deleteExperience(entityId);
+                                setUser({ ...user!, experienceCount: (user?.experienceCount ?? 0) - 1 });
                             }
 
                             toast({
@@ -184,6 +206,8 @@ export default function EntityTable({ config }: EntityTableProps) {
             certificateStore.updateCertificate(updatedEntity as never);
         } else if (config.type === 'project') {
             projectStore.updateProject(entityWithId.id, updatedEntity as never);
+        } else if (config.type === 'experience') {
+            experienceStore.updateExperience(updatedEntity as never);
         }
         setEditingEntity(null);
     };

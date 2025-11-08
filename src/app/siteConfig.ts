@@ -7,11 +7,7 @@ export const siteConfig = {
     projects: "/dashboard/projects",
     certifications: "/dashboard/certifications",
     awards: "/dashboard/awards",
-    settings: {
-      audit: "/settings/audit",
-      users: "/settings/users",
-      billing: "/settings/billing",
-    },
+    experiences : "/dashboard/experience",
     login: "/",
     onboarding: "/onboarding/name",
   },

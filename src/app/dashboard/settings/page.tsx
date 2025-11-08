@@ -260,8 +260,8 @@ export default function Settings() {
                             </div>
                         </div>
 
-                        <div className="flex-shrink-0">
-                            <Divider className="!my-6" />
+                        <div className="shrink-0">
+                            <Divider className="my-6!" />
                             <div className="flex items-center justify-end space-x-4">
                                 <Button type="submit" onClick={handleSubmit} isLoading={submitting} disabled={JSON.stringify(education) === JSON.stringify(educationData)}>
                                     Update

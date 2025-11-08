@@ -3,13 +3,13 @@ import { siteConfig } from "@/app/siteConfig"
 import { Tooltip } from "@/components/Tooltip"
 import { cx, focusRing } from "@/lib/utils"
 import {
+    BriefcaseBusiness,
     Compass,
     FileBadge,
     Flame,
     FolderClosed,
     PanelRightClose,
     PanelRightOpen,
-    Settings2,
     Trophy
 } from "lucide-react"
 import Link from "next/link"
@@ -33,9 +33,9 @@ const navigation = [
         icon: Trophy,
     },
     {
-        name: "Settings",
-        href: siteConfig.baseLinks.settings.audit,
-        icon: Settings2,
+        name: "Experiences",
+        href: siteConfig.baseLinks.experiences,
+        icon: BriefcaseBusiness,
     },
 ] as const
 
@@ -47,9 +47,6 @@ interface SidebarProps {
 export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
     const pathname = usePathname()
     const isActive = (itemHref: string) => {
-        if (itemHref === siteConfig.baseLinks.settings.audit) {
-            return pathname.startsWith("/settings")
-        }
         return pathname === itemHref || pathname.startsWith(itemHref)
     }
     return (
@@ -121,7 +118,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
                                                 content={item.name}
                                                 sideOffset={6}
                                                 showArrow={false}
-                                                className="z-[999]"
+                                                className="z-999"
                                             >
                                                 <Link
                                                     href={item.href}
@@ -179,7 +176,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
                                             content="Onboarding"
                                             sideOffset={6}
                                             showArrow={false}
-                                            className="z-[999]"
+                                            className="z-999"
                                         >
                                             <Link
                                                 href={siteConfig.baseLinks.onboarding}

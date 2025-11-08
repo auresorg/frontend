@@ -11,7 +11,7 @@ import {
 } from "@/components/Drawer"
 import { cx, focusRing } from "@/lib/utils"
 
-import { Compass, FileBadge, Flame, FolderClosed, Menu, Settings2, Trophy} from "lucide-react"
+import { BriefcaseBusiness, Compass, FileBadge, Flame, FolderClosed, Menu, Trophy} from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -31,18 +31,15 @@ const navigation = [
         icon: Trophy,
     },
     {
-        name: "Settings",
-        href: siteConfig.baseLinks.settings.audit,
-        icon: Settings2,
+        name: "Experiences",
+        href: siteConfig.baseLinks.experiences,
+        icon: BriefcaseBusiness,
     },
 ] as const
 
 export default function MobileSidebar() {
     const pathname = usePathname()
     const isActive = (itemHref: string) => {
-        if (itemHref === siteConfig.baseLinks.settings.audit) {
-            return pathname.startsWith("/settings")
-        }
         return pathname === itemHref || pathname.startsWith(itemHref)
     }
     return (
