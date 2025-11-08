@@ -130,6 +130,36 @@ Read the user's project description and return only the most relevant role from 
 Base your choice strictly on the skills, responsibilities, and technologies mentioned.  
 Output only the role name — no punctuation, no explanations, no JSON, nothing else.`
 
+// Experience prompts
+const experienceAndRolePrompt: string = `You are an expert technical resume writer specializing in work experience.  
+Convert the user's casual experience description into a single, concise, strong resume bullet point, written as **one sentence**.  
+Do **NOT** include the company name or job title in the response.  
+Use action-driven language and quantify impact where possible (users, performance, revenue, time saved, reliability, cost).  
+Analyze the description and rewrite the bullet point using an outcome-focused format. Recognized formats are **STAR (Situation, Task, Action, Result)**, **CAR (Context, Action, Result)**, and **XYZ (Accomplished X as measured by Y by doing Z)**.  
+Only assign the "format" key if the bullet genuinely follows one of these formats; otherwise, set "format": "None".  
+Select an appropriate role from this enum and include it under "role":  
+["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].  
+Return JSON exactly as:  
+{
+  "bullet": "<your rewritten bullet>",
+  "format": "<STAR | CAR | XYZ | None>",
+  "role": "<one role from the enum>"
+}`;
+const experiencePromptWithoutRole: string = `You are an expert technical resume writer specializing in work experience.  
+Convert the user's casual experience description into a single, concise, strong resume bullet point, written as **one sentence**.  
+Do **NOT** include the company name or job title in the response.  
+Use action-driven language and quantify impact where possible.  
+Analyze and use **STAR/CAR/XYZ** when applicable; otherwise "None".  
+Return JSON exactly as:  
+{
+  "bullet": "<your rewritten bullet>",
+  "format": "<STAR | CAR | XYZ | None>"
+}`;
+const experienceRolePrompt: string = `You are an expert at identifying technical roles from experience descriptions.  
+Read the user's description and return only the most relevant role from this enum:  
+["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].  
+Output only the role name — no punctuation, no explanations, no JSON, nothing else.`;
+
 // Helper function to get prompts based on type
 function getPrompts(type: string) {
     switch (type) {
@@ -151,6 +181,14 @@ function getPrompts(type: string) {
                 withoutRole: projectPromptWithoutRole,
                 roleOnly: projectRolePrompt,
             };
+
+        case "experience":
+            return {
+                withRole: experienceAndRolePrompt,
+                withoutRole: experiencePromptWithoutRole,
+                roleOnly: experienceRolePrompt,
+            };
+
         default:
             throw new Error(`Unknown type: ${type}`);
     }
@@ -161,6 +199,14 @@ function buildContext(type: string, body: Record<string, string | undefined>): s
     let preBody = "";
     
     switch (type) {
+        case "experience":
+            if (body.title) preBody += `Job Title: ${body.title}, `;
+            if (body.company) preBody += `Company: ${body.company}, `;
+            if (body.startDate) preBody += `Start: ${body.startDate}, `;
+            if (body.endDate) preBody += `End: ${body.endDate}, `;
+            if (body.role) preBody += `My Role: ${body.role}, `;
+            break;
+
         case "award":
             if (body.title) preBody += `Award Title: ${body.title}, `;
             if (body.issuer) preBody += `Issuer: ${body.issuer}, `;
@@ -185,6 +231,8 @@ function buildContext(type: string, body: Record<string, string | undefined>): s
 // Helper function to get title field for role-only prompt
 function getTitleField(type: string, body: Record<string, string | undefined>): string {
     switch (type) {
+        case "experience":
+            return body.title || "";
         case "award":
             return body.title || "";
         case "certification":
@@ -218,7 +266,7 @@ export async function POST(request: Request) {
             const body = await request.json();
             const { type } = body; // Extract type: "award", "certification", or "project"
             
-            if (!type || !["award", "certification", "project"].includes(type)) {
+            if (!type || !["award", "certification", "project", "experience"].includes(type)) {
                 return new Response(
                     JSON.stringify({ error: "Invalid or missing type parameter" }),
                     { status: 400 }

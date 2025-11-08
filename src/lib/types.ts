@@ -57,3 +57,13 @@ export interface Award {
   date: string;
   role: string;
 }
+
+export interface Experience {
+  id: string;
+  title: string;
+  company: string;
+  startDate: string;
+  endDate: string | null;
+  description: string;
+  role: string | null;
+}

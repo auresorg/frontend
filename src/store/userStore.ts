@@ -9,6 +9,7 @@ interface UserStore {
     editProjectsCount: (count: number, type: string) => void;
     editCertCount: (count: number, type: string) => void;
     editAwardCount: (count: number, type: string) => void;
+    editExperienceCount: (count: number, type: string) => void;
 }
 
 export const useUserStore = create<UserStore>((set) => ({
@@ -88,6 +89,20 @@ export const useUserStore = create<UserStore>((set) => ({
                 user: {
                     ...state.user,
                     awardsCount: newAwardsCount,
+                },
+            };
+        }),
+    
+    editExperienceCount: (count: number, type: string) =>
+        set((state) => {
+            if (!state.user) return state;
+            const newExperienceCount = type === 'increment'
+                ? state.user.experienceCount + count
+                : Math.max(0, state.user.experienceCount - count);
+            return {
+                user: {
+                    ...state.user,
+                    experienceCount: newExperienceCount,
                 },
             };
         })
