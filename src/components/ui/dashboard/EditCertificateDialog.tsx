@@ -165,7 +165,7 @@ export default function EditCertificateDialog({ certificate, onClose, onSave }: 
         let shouldUpdate = false;
 
         try {
-            const response = await postWithTokenNextEndpoint("/create/certification", formData);
+            const response = await postWithTokenNextEndpoint("/create", { ...formData, type: "certification" });
 
             if (formData.description.startsWith("##") && formData.description.indexOf("##", 2) > 2) {
                 const endIndex = formData.description.indexOf("##", 2);

@@ -54,7 +54,7 @@ export default function AddProjectDialog() {
         };
 
         try {
-            const precreate = await postWithTokenNextEndpoint("/create/project", projectData);
+            const precreate = await postWithTokenNextEndpoint("/create", { ...projectData, type: "project" });
             if (!precreate || precreate.status !== 200) {
                 PresetDialog("unexpectedError");
                 return;

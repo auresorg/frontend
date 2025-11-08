@@ -57,7 +57,7 @@ export default function AddAwardDialog() {
         };
 
         try {
-            const precreate = await postWithTokenNextEndpoint("/create/award", awardData);
+            const precreate = await postWithTokenNextEndpoint("/create", { ...awardData, type: "award" });
             if (!precreate || precreate.status !== 200) {
                 PresetDialog("unexpectedError");
                 return;
@@ -147,7 +147,7 @@ export default function AddAwardDialog() {
                 // logger: (m: unknown) => console.log(m),
             });
             setLoadingMsg("Analyzing extracted text...");
-            const response = await postWithTokenNextEndpoint("/scan/award", { certificate: data.text });
+            const response = await postWithTokenNextEndpoint("/scan", { certificate: data.text, type: "award" });
             if (response && response.status === 200) {
                 const awardInfo = response.data;
                 setFormData({

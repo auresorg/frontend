@@ -164,7 +164,7 @@ export default function EditAwardDialog({ award, onClose, onSave }: EditAwardDia
         let shouldUpdate = false;
 
         try {
-            const response = await postWithTokenNextEndpoint("/create/award", formData);
+            const response = await postWithTokenNextEndpoint("/create", { ...formData, type: "award" });
 
             if (formData.description.startsWith("##") && formData.description.indexOf("##", 2) > 2) {
                 const endIndex = formData.description.indexOf("##", 2);

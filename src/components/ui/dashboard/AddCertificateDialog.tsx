@@ -51,7 +51,7 @@ export default function AddCertificateDialog() {
         };
 
         try {
-            const precreate = await postWithTokenNextEndpoint("/create/certification", certificateData);
+            const precreate = await postWithTokenNextEndpoint("/create", { ...certificateData, type: "certification" });
             if (!precreate || precreate.status !== 200) {
                 PresetDialog("unexpectedError");
                 return;
