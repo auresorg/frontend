@@ -3,7 +3,7 @@ import { query } from "@/lib/db";
 import type { User, Project, Education, Certification, Experience } from "@/lib/types";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
-const RESGEN_URL = "http://localhost:7071/api/resume";
+const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
 const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops"]);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
