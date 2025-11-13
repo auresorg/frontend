@@ -1,4 +1,5 @@
 export type User = {
+    id?: string;
     firstName?: string;
     lastName?: string;
     username: string;
@@ -58,12 +59,12 @@ export interface Award {
   role: string;
 }
 
-export interface Experience {
-  id: string;
-  title: string;
-  company: string;
-  startDate: string;
-  endDate: string | null;
-  description: string;
-  role: string | null;
-}
+export type Experience = {
+    id: number;
+    title: string;
+    company: string;
+    startDate: string;
+    endDate: string | null;
+    description: string;
+    role: string;
+} & Record<string, unknown>;
