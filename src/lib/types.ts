@@ -60,7 +60,7 @@ export interface Award {
 }
 
 export type Experience = {
-    id: number;
+    id: string;
     title: string;
     company: string;
     startDate: string;
