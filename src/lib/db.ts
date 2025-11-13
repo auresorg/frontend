@@ -24,8 +24,32 @@ export async function query<T extends Record<string, unknown>>(
     password: process.env.POSTGRES_PASSWORD!,
     database: process.env.POSTGRES_DB!,
     ssl: {
-      rejectUnauthorized: true,
-      ca: process.env.POSTGRES_CA!,
+      // allow some flexibility in how the CA is provided via env (Azure may encode newlines)
+      rejectUnauthorized: process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED !== '0',
+      ca: (() => {
+        const raw = process.env.POSTGRES_CA || "";
+        let candidate = raw;
+        // strip wrapping quotes if present
+        if (candidate.startsWith('"') && candidate.endsWith('"')) {
+          candidate = candidate.slice(1, -1);
+        }
+        // convert literal "\n" sequences into real newlines
+        candidate = candidate.replace(/\\r/g, "").replace(/\\n/g, "\n").trim();
+
+        // if it doesn't look like a PEM cert, try base64 decode and check again
+        if (!/-----BEGIN CERTIFICATE-----/.test(candidate)) {
+          try {
+            const decoded = Buffer.from(candidate, 'base64').toString('utf8');
+            if (/-----BEGIN CERTIFICATE-----/.test(decoded)) {
+              candidate = decoded;
+            }
+          } catch {
+            // ignore decode errors, we'll fall back to the raw candidate
+          }
+        }
+
+        return candidate;
+      })(),
     },
   };
 

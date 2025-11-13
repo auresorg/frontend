@@ -190,7 +190,56 @@ export async function GET(
 
         return NextResponse.json({ cached: false, url: fullUrl(stored) });
     } catch (error) {
-        //return the error full message
-        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+        // return detailed diagnostics to help debug SSL / env issues in production
+        const err = error as Error;
+
+        // collect POSTGRES_CA diagnostics (don't blindly return full secrets; provide useful previews)
+        const rawCa = process.env.POSTGRES_CA || "";
+        let stripped = rawCa;
+        if (stripped.startsWith('"') && stripped.endsWith('"')) {
+            stripped = stripped.slice(1, -1);
+        }
+        const hasLiteralBackslashN = /\\n/.test(rawCa);
+        const replaced = stripped.replace(/\\r/g, "").replace(/\\n/g, "\n").trim();
+
+        let base64DecodedPreview: string | null = null;
+        try {
+            const decoded = Buffer.from(stripped, 'base64').toString('utf8');
+            base64DecodedPreview = decoded.slice(0, 1000);
+        } catch {
+            // ignore
+        }
+
+        const diagnostics = {
+            time: new Date().toISOString(),
+            error: {
+                message: err.message,
+                name: err.name,
+                stack: err.stack,
+            },
+            env: {
+                NODE_ENV: process.env.NODE_ENV,
+                POSTGRES_HOST: process.env.POSTGRES_HOST,
+                POSTGRES_PORT: process.env.POSTGRES_PORT,
+                POSTGRES_USER: process.env.POSTGRES_USER,
+                POSTGRES_DB: process.env.POSTGRES_DB,
+                POSTGRES_SSL_REJECT_UNAUTHORIZED: process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED,
+            },
+            password: process.env.POSTGRES_PASSWORD ? { length: process.env.POSTGRES_PASSWORD.length } : null,
+            postgres_ca: {
+                raw_preview: rawCa.slice(0, 2000),
+                startsWithBegin: /-----BEGIN CERTIFICATE-----/.test(stripped),
+                hasLiteralBackslashN,
+                replaced_preview: replaced.slice(0, 2000),
+                base64_decoded_preview: base64DecodedPreview,
+                raw_length: rawCa.length,
+                replaced_length: replaced.length,
+            },
+        };
+
+        // server-side log for operators
+        console.error('resume generation error', diagnostics);
+
+        return NextResponse.json({ error: err.message, diagnostics }, { status: 500 });
     }
 }
