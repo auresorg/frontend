@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { SparklesCore } from "./sparkles";
 import logo from "@/assets/images/cover.png"
 import Image from "next/image";
+import { githubClientId, nextBase } from '@/lib/utils';
 
 
 export default function Home() {
@@ -16,7 +17,12 @@ export default function Home() {
   }, []);
 
   return (
-          <div className="h-160 w-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-md">
+          <div className="h-160 w-full bg-black flex flex-col items-center justify-center overflow-hidden rounded-md"
+          onClick={() => {
+            // Redirect to GitHub OAuth login
+            window.location.href = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&redirect_uri=${encodeURIComponent(nextBase + "/login/callback")}&scope=read:user user:email`
+          }}
+          >
               <h1 className="md:text-7xl text-3xl lg:text-9xl font-bold text-center text-white relative z-20">
                   <Image src={logo} alt="AURES Logo" className="relative z-20 w-auto h-24" />
               </h1>
