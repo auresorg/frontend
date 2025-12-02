@@ -23,7 +23,7 @@ const safe = (v: any): string => {
 
     // --- normalize odd unicode dash/space artifacts if needed ---
     s = s.replace(/\u2013|\u2014/g, "-")  // long dashes → hyphen
-         .replace(/\u00A0/g, " ");       // non-breaking space → space
+        .replace(/\u00A0/g, " ");       // non-breaking space → space
 
     return s;
 };
@@ -195,8 +195,24 @@ export async function GET(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
+        let bodyText: string | null = null;
+        try {
+            bodyText = await gen.text();
+        } catch {
+            bodyText = null;
+        }
         if (!gen.ok) {
-            return NextResponse.json({ error: "resgen failed" }, { status: 500 });
+            return NextResponse.json(
+                {
+                    error: "resgen failed",
+                    status: gen.status,
+                    statusText: gen.statusText,
+                    body: bodyText,
+                    // include what we sent, so we can see if payload is weird
+                    debugPayload: payload,
+                },
+                { status: 500 },
+            );
         }
 
         const { url } = (await gen.json()) as { url: string };
@@ -206,6 +222,16 @@ export async function GET(
 
         return NextResponse.json({ cached: false, url: fullUrl(stored) });
     } catch (error) {
-        return NextResponse.json({ error }, { status: 500 });
-    }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err = error as any;
+
+        return NextResponse.json(
+            {
+                error: "unhandled error in resume GET",
+                message: err?.message ?? String(err),
+                stack: err?.stack ?? null,
+            },
+            { status: 500 },
+        );
+}
 }
