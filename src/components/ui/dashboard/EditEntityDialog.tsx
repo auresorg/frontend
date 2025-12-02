@@ -33,6 +33,20 @@ interface EditEntityDialogProps {
     onSave: (entity: Entity) => void;
 }
 
+const stripFormatBlock = (desc = "") => {
+    if (!desc.startsWith("##")) return desc;
+    const second = desc.indexOf("##", 2);
+    if (second === -1) return desc;
+    return desc.substring(second + 2).trim();
+};
+
+const extractFormatBlock = (desc = "") => {
+    if (!desc.startsWith("##")) return null;
+    const second = desc.indexOf("##", 2);
+    if (second === -1) return null;
+    return desc.substring(2, second).trim();
+};
+
 export default function EditEntityDialog({ config, entity, onClose, onSave }: EditEntityDialogProps) {
     const initialState = config.formFields.reduce((acc, field) => {
         if (field.type !== 'file') {
@@ -53,14 +67,10 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
     const { user } = useUserStore();
     const PresetDialog = usePresetDialog();
 
-    let badgeText: string = '';
+    const badgeText = extractFormatBlock(formData.description || "");
+
     let badgeType: "error" | "default" | "success" | "warning" | "neutral" | undefined = "default";
-
-    if (formData.description && formData.description.startsWith('##') && formData.description.indexOf('##', 2) > 2) {
-        const endIndex = formData.description.indexOf('##', 2);
-        badgeText = formData.description.substring(2, endIndex).trim();
-    }
-
+    
     switch (badgeText) {
         case 'STAR':
             badgeType = 'default';
@@ -98,16 +108,7 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
 
     useEffect(() => {
         if (!isGenerating && formData.description) {
-            if (badgeText && formData.description.startsWith("##")) {
-                const endIndex = formData.description.indexOf("##", 2);
-                if (endIndex > 2) {
-                    setDisplayText(formData.description.substring(endIndex + 2).trim());
-                } else {
-                    setDisplayText(formData.description);
-                }
-            } else {
-                setDisplayText(formData.description);
-            }
+            setDisplayText(stripFormatBlock(formData.description));
         }
     }, [formData.description, badgeText, isGenerating]);
 
@@ -149,10 +150,7 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
             const requestData: Record<string, unknown> = { ...formData, type: config.type };
             const response = await postWithTokenNextEndpoint("/create", requestData);
 
-            if (formData.description.startsWith("##") && formData.description.indexOf("##", 2) > 2) {
-                const endIndex = formData.description.indexOf("##", 2);
-                formData.description = formData.description.substring(endIndex + 2).trim();
-            }
+            formData.description = stripFormatBlock(formData.description);
 
             if (response && response.status === 200) {
                 const format = response.data.format;
@@ -172,11 +170,7 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
                     setFormData(prev => ({ ...prev, role }));
                 }
 
-                setDisplayText(
-                    newDescription.startsWith("##") && format && format !== "None"
-                        ? newDescription.substring(newDescription.indexOf("##", 2) + 2).trim()
-                        : newDescription
-                );
+                setDisplayText(stripFormatBlock(newDescription));
             }
         } catch (error) {
             if (isAxiosError(error)) {
