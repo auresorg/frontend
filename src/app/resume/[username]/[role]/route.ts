@@ -215,7 +215,7 @@ export async function GET(
             );
         }
 
-        const { url } = (await gen.json()) as { url: string };
+        const { url } = JSON.parse(bodyText!) as { url: string };
         const stored = stripHost(url);
 
         await query(`INSERT INTO resumes (user_id, username, role, url, compiled_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (username, role) DO UPDATE SET url = EXCLUDED.url, compiled_at = EXCLUDED.compiled_at`, [userId, username, role, stored]);
