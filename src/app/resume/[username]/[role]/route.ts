@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import type { User, Project, Education, Certification, Experience } from "@/lib/types";
+import { rateLimit } from "@/lib/rateLimit";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
 const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
@@ -35,12 +36,39 @@ function fullUrl(p: string) {
     return `${FILE_BASE}${p.startsWith("/") ? p : `/${p}`}`;
 }
 
+async function file(stored: string, filename: string) {
+    const pdfUrl = fullUrl(stored);
+
+    const pdfRes = await fetch(pdfUrl);
+
+    if (!pdfRes.ok) {
+        return NextResponse.json(
+            { error: "Failed to load PDF from storage" },
+            { status: 500 }
+        );
+    }
+
+    const buffer = Buffer.from(await pdfRes.arrayBuffer());
+
+    return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `inline; filename="${filename}"`,
+            "Cache-Control": "public, max-age=3600"
+        }
+    });
+}
+
+
 export async function GET(
     _req: Request,
     { params }: { params: { username: string; role: string } }
 ) {
-
     try {
+        const limited = await rateLimit(_req, { mode: "ip", route: "resume", limit: 3, windowSec: 60, html: true });
+        if (limited) return limited;
+
         const { username, role } = params;
 
         if (!AllowedRoles.has(role)) {
@@ -71,7 +99,7 @@ export async function GET(
         if (cache.length > 0) {
             const { url, compiled_at, data_updated_at } = cache[0];
             if (!data_updated_at || new Date(compiled_at) >= new Date(data_updated_at)) {
-                return NextResponse.json({ cached: true, url: fullUrl(url) });
+                return file(url, `${username}-${role}.pdf`);
             }
         }
 
@@ -220,7 +248,7 @@ export async function GET(
 
         await query(`INSERT INTO resumes (user_id, username, role, url, compiled_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (username, role) DO UPDATE SET url = EXCLUDED.url, compiled_at = EXCLUDED.compiled_at`, [userId, username, role, stored]);
 
-        return NextResponse.json({ cached: false, url: fullUrl(stored) });
+        return file(url, `${username}-${role}.pdf`);
     } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const err = error as any;
@@ -233,5 +261,5 @@ export async function GET(
             },
             { status: 500 },
         );
-}
+    }
 }
