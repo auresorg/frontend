@@ -1,5 +1,6 @@
 import { verify } from "jsonwebtoken";
 import { Groq } from "groq-sdk";
+import { rateLimit } from "@/lib/rateLimit";
 
 const awardScanPrompt: string = `
 You are an AI that extracts structured award information from OCR text of certificates. 
@@ -57,6 +58,10 @@ export async function POST(request: Request) {
         const decoded = verify(token, publicKey, { algorithms: ["RS256"] });
 
         if (decoded && typeof decoded === "object" && "plan" in decoded) {
+
+            const limited = await rateLimit(request, { mode: "user", identifier: decoded["id"] as string, route: "create", limit: 2, windowSec: 10 });
+            if (limited) return limited;
+
             const body = await request.json();
             const { type, certificate } = body;
             

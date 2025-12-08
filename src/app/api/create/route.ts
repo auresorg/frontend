@@ -1,5 +1,6 @@
 import { verify } from "jsonwebtoken";
 import { Groq } from "groq-sdk";
+import { rateLimit } from "@/lib/rateLimit";
 
 // Award prompts
 const awardAndRolePrompt: string = `You are an expert technical resume writer specializing in awards, hackathons, and achievements.  
@@ -263,6 +264,10 @@ export async function POST(request: Request) {
         const decoded = verify(token, publicKey, { algorithms: ["RS256"] });
 
         if (decoded && typeof decoded === "object" && "plan" in decoded) {
+
+            const limited = await rateLimit(request, { mode: "user", identifier: decoded["id"] as string, route: "create", limit: 2, windowSec: 10 });
+            if (limited) return limited;
+
             const body = await request.json();
             const { type } = body; // Extract type: "award", "certification", or "project"
             
