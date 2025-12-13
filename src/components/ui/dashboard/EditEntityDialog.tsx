@@ -177,6 +177,16 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
                 if (error.response?.status === 401) {
                     PresetDialog("sessionExpired");
                     return;
+                } else if (error.response?.status === 429) {
+                    const retryAfter = error.response?.data?.retry_after;
+                    toast({
+                        title: "Rate Limit Exceeded",
+                        description: retryAfter
+                            ? `You are being rate limited. Please try again after ${retryAfter} seconds.`
+                            : "You are being rate limited. Please try again later.",
+                        variant: "error",
+                        duration: 4000
+                    });
                 } else {
                     toast({
                         title: "Error",
