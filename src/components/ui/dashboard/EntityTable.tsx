@@ -273,71 +273,97 @@ export default function EntityTable({ config }: EntityTableProps) {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {entities.map((entity) => (
-                                    <TableRow key={(entity as { id: string }).id}>
-                                        {config.tableColumns.map((column, idx) => (
-                                            <TableCell 
-                                                key={column.key}
-                                                className={idx === 0 ? "font-medium text-gray-900 dark:text-gray-50" : ""}
-                                            >
-                                                {column.render 
-                                                    ? column.render((entity as Record<string, unknown>)[column.key], entity)
-                                                    : renderCellValue(entity, column.key)
-                                                }
-                                            </TableCell>
-                                        ))}
-                                        <TableCell className="text-right">
-                                            <div className="relative flex justify-end">
-                                                <Button
-                                                    variant="ghost"
-                                                    className="p-2!"
-                                                    ref={el => { buttonRefs.current[(entity as { id: string }).id] = el; }}
-                                                    onClick={() => openActionMenu((entity as { id: string }).id)}
+                                {!hasLoaded ? (
+                                    Array.from({ length: 3 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            {config.tableColumns.map((column, idx) => (
+                                                <TableCell 
+                                                    key={column.key}
+                                                    className={idx === 0 ? "font-medium text-gray-900 dark:text-gray-50" : ""}
                                                 >
-                                                    {actionMenuOpen === (entity as { id: string }).id ? (
-                                                        <RiCloseLine className="size-4" />
-                                                    ) : (
-                                                        <RiMore2Fill className="size-4" />
-                                                    )}
-                                                </Button>
-
-                                                {actionMenuOpen === (entity as { id: string }).id && isClient &&
-                                                    createPortal(
-                                                        <div
-                                                            className="absolute z-50 w-40 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-925"
-                                                            style={{
-                                                                top: menuPosition.top,
-                                                                left: menuPosition.left,
-                                                            }}
-                                                        >
-                                                            <button
-                                                                onClick={() => handleEdit(entity)}
-                                                                className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900"
-                                                            >
-                                                                <RiPencilLine className="mr-2 size-4" />
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleShare((entity as { id: string }).id)}
-                                                                className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900"
-                                                            >
-                                                                <RiShareLine className="mr-2 size-4" />
-                                                                Share
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete((entity as { id: string }).id, getEntityName(entity))}
-                                                                className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-gray-50 dark:text-red-500 dark:hover:bg-gray-900"
-                                                            >
-                                                                <RiDeleteBinLine className="mr-2 size-4" />
-                                                                Delete
-                                                            </button>
-                                                        </div>,
-                                                        document.body
-                                                    )}
-                                            </div>
+                                                    <div className="h-5 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                                                </TableCell>
+                                            ))}
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end">
+                                                    <div className="h-8 w-8 bg-gray-200 dark:bg-gray-800 rounded animate-pulse"></div>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : entities.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={config.tableColumns.length + 1} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                                            No records found
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    entities.map((entity) => (
+                                        <TableRow key={(entity as { id: string }).id}>
+                                            {config.tableColumns.map((column, idx) => (
+                                                <TableCell 
+                                                    key={column.key}
+                                                    className={idx === 0 ? "font-medium text-gray-900 dark:text-gray-50" : ""}
+                                                >
+                                                    {column.render 
+                                                        ? column.render((entity as Record<string, unknown>)[column.key], entity)
+                                                        : renderCellValue(entity, column.key)
+                                                    }
+                                                </TableCell>
+                                            ))}
+                                            <TableCell className="text-right">
+                                                <div className="relative flex justify-end">
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="p-2!"
+                                                        ref={el => { buttonRefs.current[(entity as { id: string }).id] = el; }}
+                                                        onClick={() => openActionMenu((entity as { id: string }).id)}
+                                                    >
+                                                        {actionMenuOpen === (entity as { id: string }).id ? (
+                                                            <RiCloseLine className="size-4" />
+                                                        ) : (
+                                                            <RiMore2Fill className="size-4" />
+                                                        )}
+                                                    </Button>
+
+                                                    {actionMenuOpen === (entity as { id: string }).id && isClient &&
+                                                        createPortal(
+                                                            <div
+                                                                className="absolute z-50 w-40 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-925"
+                                                                style={{
+                                                                    top: menuPosition.top,
+                                                                    left: menuPosition.left,
+                                                                }}
+                                                            >
+                                                                <button
+                                                                    onClick={() => handleEdit(entity)}
+                                                                    className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900"
+                                                                >
+                                                                    <RiPencilLine className="mr-2 size-4" />
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleShare((entity as { id: string }).id)}
+                                                                    className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900"
+                                                                >
+                                                                    <RiShareLine className="mr-2 size-4" />
+                                                                    Share
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDelete((entity as { id: string }).id, getEntityName(entity))}
+                                                                    className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-gray-50 dark:text-red-500 dark:hover:bg-gray-900"
+                                                                >
+                                                                    <RiDeleteBinLine className="mr-2 size-4" />
+                                                                    Delete
+                                                                </button>
+                                                            </div>,
+                                                            document.body
+                                                        )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableRoot>
@@ -346,65 +372,90 @@ export default function EntityTable({ config }: EntityTableProps) {
 
             {/* Mobile Cards */}
             <div className="mt-6 space-y-4 lg:hidden">
-                {entities.map((entity) => (
-                    <div
-                        key={(entity as { id: string }).id}
-                        className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-925"
-                    >
-                        <div className="flex items-start justify-between">
-                            <h4 className="font-semibold text-gray-900 dark:text-gray-50">
-                                {getEntityName(entity)}
-                            </h4>
-                            <div className="relative">
-                                <Button
-                                    variant="ghost"
-                                    className="p-1!"
-                                    onClick={() => setActionMenuOpen(actionMenuOpen === (entity as { id: string }).id ? null : (entity as { id: string }).id)}
-                                >
-                                    <RiMore2Fill className="size-4" />
-                                </Button>
-
-                                {actionMenuOpen === (entity as { id: string }).id && (
-                                    <div className="absolute right-0 top-8 z-10 w-36 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-925">
-                                        <button
-                                            onClick={() => handleEdit(entity)}
-                                            className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900"
-                                        >
-                                            <RiPencilLine className="mr-2 size-4" />
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleShare((entity as { id: string }).id)}
-                                            className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900"
-                                        >
-                                            <RiShareLine className="mr-2 size-4" />
-                                            Share
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete((entity as { id: string }).id, getEntityName(entity))}
-                                            className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-gray-50 dark:text-red-500 dark:hover:bg-gray-900"
-                                        >
-                                            <RiDeleteBinLine className="mr-2 size-4" />
-                                            Delete
-                                        </button>
-                                    </div>
-                                )}
+                {!hasLoaded ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                        <div
+                            key={i}
+                            className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-925 animate-pulse"
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-800"></div>
+                                <div className="h-6 w-6 rounded bg-gray-200 dark:bg-gray-800"></div>
+                            </div>
+                            <div className="mt-4 space-y-2">
+                                <div className="h-3 w-full rounded bg-gray-200 dark:bg-gray-800"></div>
+                                <div className="h-3 w-5/6 rounded bg-gray-200 dark:bg-gray-800"></div>
+                                <div className="h-3 w-4/6 rounded bg-gray-200 dark:bg-gray-800"></div>
                             </div>
                         </div>
-                        <div className="mt-2 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                            {config.tableColumns.slice(1).map((column) => (
-                                <div key={column.key}>
-                                    <span className="font-medium">{column.label}:</span>{' '}
-                                    {column.render 
-                                        ? column.render((entity as Record<string, unknown>)[column.key], entity)
-                                        : renderCellValue(entity, column.key)
-                                    }
-                                </div>
-                            ))}
-                        </div>
+                    ))
+                ) : entities.length === 0 ? (
+                    <div className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No records found
                     </div>
-                ))}
+                ) : (
+                    entities.map((entity) => (
+                        <div
+                            key={(entity as { id: string }).id}
+                            className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-925"
+                        >
+                            <div className="flex items-start justify-between">
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-50">
+                                    {getEntityName(entity)}
+                                </h4>
+                                <div className="relative">
+                                    <Button
+                                        variant="ghost"
+                                        className="p-1!"
+                                        onClick={() => setActionMenuOpen(actionMenuOpen === (entity as { id: string }).id ? null : (entity as { id: string }).id)}
+                                    >
+                                        <RiMore2Fill className="size-4" />
+                                    </Button>
+
+                                    {actionMenuOpen === (entity as { id: string }).id && (
+                                        <div className="absolute right-0 top-8 z-10 w-36 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-925">
+                                            <button
+                                                onClick={() => handleEdit(entity)}
+                                                className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900"
+                                            >
+                                                <RiPencilLine className="mr-2 size-4" />
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => handleShare((entity as { id: string }).id)}
+                                                className="flex w-full items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900"
+                                            >
+                                                <RiShareLine className="mr-2 size-4" />
+                                                Share
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete((entity as { id: string }).id, getEntityName(entity))}
+                                                className="flex w-full items-center px-3 py-2 text-sm text-red-600 hover:bg-gray-50 dark:text-red-500 dark:hover:bg-gray-900"
+                                            >
+                                                <RiDeleteBinLine className="mr-2 size-4" />
+                                                Delete
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="mt-2 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                                {config.tableColumns.slice(1).map((column) => (
+                                    <div key={column.key}>
+                                        <span className="font-medium">{column.label}:</span>{' '}
+                                        {column.render 
+                                            ? column.render((entity as Record<string, unknown>)[column.key], entity)
+                                            : renderCellValue(entity, column.key)
+                                        }
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
+
+
 
             {/* Edit Dialog */}
             <EditEntityDialog
