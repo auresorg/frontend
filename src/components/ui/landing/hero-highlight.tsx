@@ -49,7 +49,7 @@ export const HeroHighlight = ({
         <div
             ref={ref}
             className={clsx(
-                "relative h-[40rem] flex items-center bg-white dark:bg-black justify-center w-full group",
+                "relative h-[40rem] flex items-center bg-white dark:bg-neutral-900 justify-center w-full group",
                 containerClassName
             )}
             onMouseMove={isInView ? handleMouseMove : undefined}

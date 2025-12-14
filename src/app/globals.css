@@ -256,3 +256,6 @@ body.hideScrollbar::-webkit-scrollbar {
 }
 
 
+:root {
+  --nav-height: 5rem; /* 80px for desktop, will adjust on scroll */
+}

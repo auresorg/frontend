@@ -6,21 +6,28 @@ import { githubClientId, nextBase } from '@/lib/utils'
 function Nav() {
     const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
     const [open, setOpen] = useState(false);
-
+    const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
         setLoggedIn(localStorage.getItem("token") ? true : false)
+        
+        // Handle scroll for sticky effect
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 10);
+        };
+        
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, [])
-
 
     return <>
         {/* ========== HEADER ========== */}
-        <header className="flex flex-wrap lg:justify-start lg:flex-nowrap z-50 w-full py-7">
+        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm shadow-sm py-4' : 'bg-transparent py-7'}`}>
             <nav className="relative max-w-7xl w-full flex flex-wrap lg:grid lg:grid-cols-12 basis-full items-center px-4 md:px-6 lg:px-8 mx-auto">
                 <div className="lg:col-span-3 flex items-center">
                     {/* Logo */}
                     <a className="flex-none rounded-xl text-xl inline-block font-semibold focus:outline-hidden focus:opacity-80" href="#" aria-label="Preline">
-                        <Image src={logo} alt="Logo" className="w-24 h-auto" />
+                        <Image src={logo} alt="Logo" className={`transition-all duration-300 ${isScrolled ? 'w-20' : 'w-24'}`} />
                     </a>
                     {/* End Logo */}
 
@@ -46,9 +53,8 @@ function Nav() {
                             type="button"
                             onClick={() => setOpen(prev => !prev)}
                             aria-expanded={open}
-                            className="size-9.5 flex justify-center items-center text-sm font-semibold rounded-xl border border-gray-200 text-black hover:bg-gray-100"
+                            className={`size-9.5 flex justify-center items-center text-sm font-semibold rounded-xl border transition-colors ${isScrolled ? 'border-gray-300 bg-white/50' : 'border-gray-200'} text-black hover:bg-gray-100`}
                         >
-
                             <svg className={`${open ? 'hidden' : 'block'} shrink-0 size-4`} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" x2="21" y1="6" y2="6" /><line x1="3" x2="21" y1="12" y2="12" /><line x1="3" x2="21" y1="18" y2="18" /></svg>
                             <svg className={`${open ? 'block' : 'hidden'} shrink-0 size-4`} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                         </button>
@@ -57,9 +63,7 @@ function Nav() {
                 {/* End Button Group */}
 
                 {/* Collapse */}
-                
                 <div className={`overflow-hidden transition-[max-height] duration-300 ease-in-out basis-full grow ${open ? 'max-h-96' : 'max-h-0'} lg:overflow-visible lg:transition-none lg:max-h-none lg:block lg:order-2 lg:col-span-6`}>
-                
                     <div className="flex flex-col gap-y-4 gap-x-0 mt-5 lg:flex-row lg:justify-center lg:items-center lg:gap-y-0 lg:gap-x-7 lg:mt-0">
                         <div>
                             <a className="relative inline-block text-black focus:outline-hidden before:absolute before:bottom-0.5 before:start-0 before:-z-1 before:w-full before:h-1 before:bg-blue-400 dark:text-white" href="#" aria-current="page">Home</a>
