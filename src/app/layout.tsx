@@ -16,8 +16,8 @@ export default function RootLayout({
 }>) {
     return (
         // add font to className, also add antialiased and dark mode
-        <html lang="en" className={`${GeistSans.className} antialiased dark:bg-gray-950`}>
-            <body style={{ margin: 0, padding: 0 }} className="overflow-hidden">
+        <html lang="en" className={`${GeistSans.className} antialiased dark:bg-neutral-900 hideScrollbar`}>
+            <body style={{ margin: 0, padding: 0 }} className="overflow-hidden hideScrollbar">
                 <ThemeProvider defaultTheme="light" disableTransitionOnChange attribute="class">
                     <DialogProvider>{children}</DialogProvider>
                 </ThemeProvider>

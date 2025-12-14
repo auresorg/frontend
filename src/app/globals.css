@@ -243,3 +243,16 @@ html, body {
     }
   }
 }
+
+html.hideScrollbar,
+body.hideScrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html.hideScrollbar::-webkit-scrollbar,
+body.hideScrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+
