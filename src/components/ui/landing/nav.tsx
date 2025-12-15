@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import logo from "@/assets/images/cover.png"
 import Image from 'next/image'
 import { githubClientId, nextBase } from '@/lib/utils'
@@ -9,35 +9,67 @@ function Nav() {
     const [isScrolled, setIsScrolled] = useState(false);
     
     const [activeLink, setActiveLink] = useState("Home");
+    const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0, opacity: 0 });
+    const linksRef = useRef<HTMLDivElement>(null);
+
+    const navLinks = [
+        { name: "Home", href: "#s1" },
+        { name: "Features", href: "#s3" }, 
+        { name: "The Aures Way", href: "#s4" }
+    ];
 
     useEffect(() => {
         setLoggedIn(localStorage.getItem("token") ? true : false)
 
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);
+
+            let currentSection = "Home";
+            
+            navLinks.forEach((link) => {
+                if (link.href === "#") return;
+                
+                const element = document.getElementById(link.href.substring(1));
+                if (element) {
+                    if (window.scrollY >= (element.offsetTop - 180)) {
+                        currentSection = link.name;
+                    }
+                }
+            });
+
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 50) {
+                currentSection = navLinks[navLinks.length - 1].name;
+            }
+
+            setActiveLink(currentSection);
         };
 
         window.addEventListener('scroll', handleScroll);
+        setTimeout(handleScroll, 100); 
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [])
+    }, []); 
 
-    const navLinks = [
-        { name: "Home", href: "#" },
-        { name: "Features", href: "#s3" },
-        { name: "Product", href: "#" },
-        { name: "Checkout", href: "#" },
-    ];
+    useEffect(() => {
+        if (!linksRef.current) return;
+
+        const activeElement = linksRef.current.querySelector<HTMLAnchorElement>(`[data-nav-link="${activeLink}"]`);
+
+        if (activeElement) {
+            setSliderStyle({
+                left: activeElement.offsetLeft,
+                width: activeElement.offsetWidth,
+                opacity: 1
+            });
+        }
+    }, [activeLink, open]); 
 
     const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, linkName: string, href: string) => {
         setActiveLink(linkName);
         setOpen(false);
 
-        if (href === "#") {
+        if (href === "#" || href === "#s1") {
             e.preventDefault();
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
 
@@ -64,10 +96,8 @@ function Nav() {
                     <a className="flex-none rounded-xl text-xl inline-block font-semibold focus:outline-hidden focus:opacity-80" href="#" aria-label="Aures">
                         <Image src={logo} alt="Logo" className={`transition-all duration-300 ${isScrolled ? 'w-20' : 'w-24'}`} />
                     </a>
-                    <div className="ms-1 sm:ms-2"></div>
                 </div>
 
-                {/* Button Group */}
                 <div className="flex items-center gap-x-1 lg:gap-x-2 ms-auto py-1 lg:ps-6 lg:order-3 lg:col-span-3 lg:justify-end">
                     <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium text-nowrap rounded-xl border border-transparent bg-blue-600 text-black hover:bg-blue-500 focus:outline-hidden focus:bg-blue-500 transition disabled:opacity-50 disabled:pointer-events-none text-white"
                         onClick={() => {
@@ -92,24 +122,35 @@ function Nav() {
                 </div>
 
                 <div className={`overflow-hidden transition-[max-height] duration-300 ease-in-out basis-full grow ${open ? 'max-h-96' : 'max-h-0'} lg:overflow-visible lg:transition-none lg:max-h-none lg:block lg:order-2 lg:col-span-6`}>
-                    <div className="flex flex-col gap-y-4 gap-x-0 mt-5 lg:flex-row lg:justify-center lg:items-center lg:gap-y-0 lg:gap-x-7 lg:mt-0">
-                        
-                        {navLinks.map((link) => (
-                            <div key={link.name}>
-                                <a 
-                                    href={link.href}
-                                    onClick={(e) => handleNavClick(e, link.name, link.href)}
-                                    className={
-                                        activeLink === link.name
-                                        ? "relative inline-block text-black focus:outline-hidden before:absolute before:bottom-0.5 before:start-0 before:-z-1 before:w-full before:h-1 before:bg-blue-400 dark:text-white cursor-pointer"
-                                        : "inline-block text-black hover:text-gray-600 focus:outline-hidden focus:text-gray-600 dark:text-white dark:hover:text-neutral-300 dark:focus:text-neutral-300 cursor-pointer"
-                                    } 
-                                >
-                                    {link.name}
-                                </a>
-                            </div>
-                        ))}
+                    <div 
+                        className="flex flex-col gap-y-4 gap-x-0 mt-5 lg:flex-row lg:justify-center lg:items-center lg:gap-y-0 lg:gap-x-7 lg:mt-0 relative"
+                        ref={linksRef} 
+                    >
+                        <span 
+                            className="hidden lg:block absolute bottom-0 h-1 bg-blue-400 rounded-full transition-all duration-300 ease-out z-0"
+                            style={{ 
+                                left: sliderStyle.left, 
+                                width: sliderStyle.width,
+                                opacity: sliderStyle.opacity,
+                                marginBottom: '-5px'
+                            }} 
+                        />
 
+                        {navLinks.map((link) => (
+                            <a 
+                                key={link.name}
+                                href={link.href}
+                                data-nav-link={link.name} 
+                                onClick={(e) => handleNavClick(e, link.name, link.href)}
+                                className={`relative z-10 inline-block text-black focus:outline-hidden dark:text-white cursor-pointer transition-colors duration-200
+                                    ${activeLink === link.name 
+                                        ? "text-black dark:text-white font-medium" 
+                                        : "hover:text-gray-600 dark:hover:text-neutral-300" 
+                                    }`}
+                            >
+                                {link.name}
+                            </a>
+                        ))}
                     </div>
                 </div>
             </nav>

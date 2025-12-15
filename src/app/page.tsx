@@ -10,14 +10,21 @@ import {
 } from "@/components/ui/landing/hero-highlight";
 import { motion } from "framer-motion";
 import Features from "@/components/ui/landing/features";
+import Comparision from "@/components/ui/landing/comparision";
+import Globe from "@/components/ui/landing/globe";
+import { BackgroundBeamsWithCollision } from "@/components/ui/landing/background";
+import Footer from "@/components/ui/landing/footer";
 
 export default function Home() {
   return (
     <>
       <Nav />
       <main className="pt-[var(--nav-height)]">
-        <Hero />
-        <ScrollArrow />
+
+        <div id="s1">
+          <Hero />
+          <ScrollArrow />
+        </div>
 
         <div id="s2">
           <HeroHighlight>
@@ -43,6 +50,36 @@ export default function Home() {
         <div id="s3">
           <Features />
         </div>
+
+
+        <div id="s6">
+          <BackgroundBeamsWithCollision>
+            <h2 className="text-2xl relative z-20 md:text-4xl lg:text-7xl font-bold text-center text-black dark:text-white font-sans tracking-tight">
+              What&apos;s cooler than Aures?{" "}
+              <div className="relative mx-auto inline-block w-max [filter:drop-shadow(0px_1px_3px_rgba(27,_37,_80,_0.14))]">
+                <div className="absolute left-0 top-[1px] bg-clip-text bg-no-repeat text-transparent bg-gradient-to-r py-4 from-[#0A2FFF] via-[#0B5CFF] to-[#1597FF] [text-shadow:0_0_rgba(0,0,0,0.1)]">
+                  <span className="">Exploring Aures.</span>
+                </div>
+                <div className="relative bg-clip-text text-transparent bg-no-repeat bg-gradient-to-r from-[#0A2FFF] via-[#0B5CFF] to-[#1597FF] py-4">
+                  <span className="">Exploring Aures.</span>
+                </div>
+              </div>
+            </h2>
+          </BackgroundBeamsWithCollision>
+        </div>
+
+        <div id="s4">
+          <Comparision />
+        </div>
+
+        <div id="s5" className="py-20 text-center">
+          <Globe />
+        </div>
+
+        <div id="s6">
+          <Footer />
+        </div>
+        
       </main>
     </>
   );
