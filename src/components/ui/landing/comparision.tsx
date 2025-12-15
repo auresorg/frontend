@@ -8,7 +8,7 @@ function Comparision() {
                 {/* Title */}
                 <div className="mx-auto max-w-2xl mb-10 text-center">
                     <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 dark:text-neutral-200">
-                        Stop updating your resume manually. It's killing your progress.
+                        Stop updating your resume manually. It&apos;s killing your progress.
                     </h2>
                 </div>
 
@@ -49,7 +49,7 @@ function Comparision() {
                                 <li className="flex gap-x-3">
                                     <span className="size-5 flex items-center justify-center rounded-full bg-neutral-100 text-neutral-400 dark:bg-neutral-800">✕</span>
                                     <span className="text-gray-800 dark:text-neutral-200">
-                                        Managing endless "Final_v2.pdf" files
+                                        Managing endless &quot;Final_v2.pdf&quot; files
                                     </span>
                                 </li>
                             </ul>
