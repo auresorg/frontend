@@ -1,6 +1,6 @@
 "use client";
 
-import { RadioTower, RefreshCcw, Zap } from 'lucide-react';
+import { RadioTower, RefreshCcw } from 'lucide-react';
 import React, { useState } from 'react'
 
 function Features() {
