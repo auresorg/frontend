@@ -7,33 +7,64 @@ function Nav() {
     const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
     const [open, setOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    
+    const [activeLink, setActiveLink] = useState("Home");
 
     useEffect(() => {
         setLoggedIn(localStorage.getItem("token") ? true : false)
-        
-        // Handle scroll for sticky effect
+
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);
         };
-        
+
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, [])
 
+    const navLinks = [
+        { name: "Home", href: "#" },
+        { name: "Features", href: "#s3" },
+        { name: "Product", href: "#" },
+        { name: "Checkout", href: "#" },
+    ];
+
+    const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, linkName: string, href: string) => {
+        setActiveLink(linkName);
+        setOpen(false);
+
+        if (href === "#") {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+            return;
+        }
+
+        if (href.startsWith('#')) {
+            e.preventDefault();
+            const element = document.getElementById(href.substring(1));
+            if (element) {
+                const headerOffset = 80;
+                const elementPosition = element.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.scrollY - headerOffset;
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: "smooth"
+                });
+            }
+        }
+    };
+
     return <>
-        {/* ========== HEADER ========== */}
         <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm shadow-sm py-4' : 'bg-transparent py-7'}`}>
             <nav className="relative max-w-7xl w-full flex flex-wrap lg:grid lg:grid-cols-12 basis-full items-center px-4 md:px-6 lg:px-8 mx-auto">
                 <div className="lg:col-span-3 flex items-center">
-                    {/* Logo */}
-                    <a className="flex-none rounded-xl text-xl inline-block font-semibold focus:outline-hidden focus:opacity-80" href="#" aria-label="Preline">
+                    <a className="flex-none rounded-xl text-xl inline-block font-semibold focus:outline-hidden focus:opacity-80" href="#" aria-label="Aures">
                         <Image src={logo} alt="Logo" className={`transition-all duration-300 ${isScrolled ? 'w-20' : 'w-24'}`} />
                     </a>
-                    {/* End Logo */}
-
-                    <div className="ms-1 sm:ms-2">
-
-                    </div>
+                    <div className="ms-1 sm:ms-2"></div>
                 </div>
 
                 {/* Button Group */}
@@ -52,7 +83,6 @@ function Nav() {
                         <button
                             type="button"
                             onClick={() => setOpen(prev => !prev)}
-                            aria-expanded={open}
                             className={`size-9.5 flex justify-center items-center text-sm font-semibold rounded-xl border transition-colors ${isScrolled ? 'border-gray-300 bg-white/50' : 'border-gray-200'} text-black hover:bg-gray-100`}
                         >
                             <svg className={`${open ? 'hidden' : 'block'} shrink-0 size-4`} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" x2="21" y1="6" y2="6" /><line x1="3" x2="21" y1="12" y2="12" /><line x1="3" x2="21" y1="18" y2="18" /></svg>
@@ -60,29 +90,30 @@ function Nav() {
                         </button>
                     </div>
                 </div>
-                {/* End Button Group */}
 
-                {/* Collapse */}
                 <div className={`overflow-hidden transition-[max-height] duration-300 ease-in-out basis-full grow ${open ? 'max-h-96' : 'max-h-0'} lg:overflow-visible lg:transition-none lg:max-h-none lg:block lg:order-2 lg:col-span-6`}>
                     <div className="flex flex-col gap-y-4 gap-x-0 mt-5 lg:flex-row lg:justify-center lg:items-center lg:gap-y-0 lg:gap-x-7 lg:mt-0">
-                        <div>
-                            <a className="relative inline-block text-black focus:outline-hidden before:absolute before:bottom-0.5 before:start-0 before:-z-1 before:w-full before:h-1 before:bg-blue-400 dark:text-white" href="#" aria-current="page">Home</a>
-                        </div>
-                        <div>
-                            <a className="inline-block text-black hover:text-gray-600 focus:outline-hidden focus:text-gray-600 dark:text-white dark:hover:text-neutral-300 dark:focus:text-neutral-300" href="#">Listings</a>
-                        </div>
-                        <div>
-                            <a className="inline-block text-black hover:text-gray-600 focus:outline-hidden focus:text-gray-600 dark:text-white dark:hover:text-neutral-300 dark:focus:text-neutral-300" href="#">Product</a>
-                        </div>
-                        <div>
-                            <a className="inline-block text-black hover:text-gray-600 focus:outline-hidden focus:text-gray-600 dark:text-white dark:hover:text-neutral-300 dark:focus:text-neutral-300" href="#">Checkout</a>
-                        </div>
+                        
+                        {navLinks.map((link) => (
+                            <div key={link.name}>
+                                <a 
+                                    href={link.href}
+                                    onClick={(e) => handleNavClick(e, link.name, link.href)}
+                                    className={
+                                        activeLink === link.name
+                                        ? "relative inline-block text-black focus:outline-hidden before:absolute before:bottom-0.5 before:start-0 before:-z-1 before:w-full before:h-1 before:bg-blue-400 dark:text-white cursor-pointer"
+                                        : "inline-block text-black hover:text-gray-600 focus:outline-hidden focus:text-gray-600 dark:text-white dark:hover:text-neutral-300 dark:focus:text-neutral-300 cursor-pointer"
+                                    } 
+                                >
+                                    {link.name}
+                                </a>
+                            </div>
+                        ))}
+
                     </div>
                 </div>
-                {/* End Collapse */}
             </nav>
         </header>
-        {/* ========== END HEADER ========== */}
     </>
 }
 

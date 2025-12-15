@@ -9,6 +9,7 @@ import {
   Highlight,
 } from "@/components/ui/landing/hero-highlight";
 import { motion } from "framer-motion";
+import Features from "@/components/ui/landing/features";
 
 export default function Home() {
   return (
@@ -37,6 +38,10 @@ export default function Home() {
               </Highlight>
             </motion.h1>
           </HeroHighlight>
+        </div>
+
+        <div id="s3">
+          <Features />
         </div>
       </main>
     </>

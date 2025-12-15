@@ -16,25 +16,20 @@ function ScrollArrow() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleClick = () => {
-    const el = document.getElementById("s2");
-    if (!el) return;
-
-    el.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-
-    setIsVisible(false);
-  };
-
-
   if (!isVisible) return null;
 
   return (
     <>
       <div
-        onClick={handleClick}
+        onClick={
+          //scroll to next section
+          () => {
+            const nextSection = document.getElementById("s2");
+            if (nextSection) {
+              nextSection.scrollIntoView({ behavior: "smooth" });
+            }
+          }
+        }
         className="scroll-arrow"
         aria-hidden
       >
