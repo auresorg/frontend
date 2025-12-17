@@ -29,9 +29,6 @@ const safe = (v: any): string => {
     return s;
 };
 
-
-function stripHost(url: string) { return url.replace(/^https?:\/\/[^/]+/i, ""); }
-
 function fullUrl(p: string) {
     return `${FILE_BASE}${p.startsWith("/") ? p : `/${p}`}`;
 }
@@ -55,7 +52,7 @@ async function file(stored: string, filename: string) {
         headers: {
             "Content-Type": "application/pdf",
             "Content-Disposition": `inline; filename="${filename}"`,
-            "Cache-Control": "public, max-age=3600"
+            "Cache-Control": "public, max-age=12"
         }
     });
 }
@@ -223,32 +220,44 @@ export async function GET(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
-        let bodyText: string | null = null;
-        try {
-            bodyText = await gen.text();
-        } catch {
-            bodyText = null;
-        }
+
         if (!gen.ok) {
+            let errBody = "";
+            try { errBody = await gen.text(); } catch (e) { }
+
             return NextResponse.json(
                 {
                     error: "resgen failed",
                     status: gen.status,
                     statusText: gen.statusText,
-                    body: bodyText,
-                    // include what we sent, so we can see if payload is weird
+                    body: errBody,
                     debugPayload: payload,
                 },
                 { status: 500 },
             );
         }
 
-        const { url } = JSON.parse(bodyText!) as { url: string };
-        const stored = stripHost(url);
+        const pdfArrayBuffer = await gen.arrayBuffer();
+        const pdfBuffer = Buffer.from(pdfArrayBuffer);
+        const filename = `${username}-${role}.pdf`;
+        const storedPath = `/storage/v1/object/public/aurespdf/${filename}`;
 
-        await query(`INSERT INTO resumes (user_id, username, role, url, compiled_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (username, role) DO UPDATE SET url = EXCLUDED.url, compiled_at = EXCLUDED.compiled_at`, [userId, username, role, stored]);
+        await query(
+            `INSERT INTO resumes (user_id, username, role, url, compiled_at) 
+            VALUES ($1, $2, $3, $4, NOW()) 
+            ON CONFLICT (username, role) 
+            DO UPDATE SET url = EXCLUDED.url, compiled_at = EXCLUDED.compiled_at`,
+            [userId, username, role, storedPath]
+        );
 
-        return file(url, `${username}-${role}.pdf`);
+        return new NextResponse(pdfBuffer, {
+            status: 200,
+            headers: {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": `inline; filename="${filename}"`,
+                "Cache-Control": "public, max-age=12"
+            }
+        });
     } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const err = error as any;
