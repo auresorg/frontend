@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import type { User, Project, Education, Certification, Experience } from "@/lib/types";
+import type { User, Project, Education, Certification, Experience, Award } from "@/lib/types";
 import { rateLimit } from "@/lib/rateLimit";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
-const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
+const RESGEN_URL = "http://localhost:7071/api/resume";
 const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops"]);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,6 +106,7 @@ export async function GET(
             projects: Project[] | null;
             certifications: Certification[] | null;
             experiences: Experience[] | null;
+            awards: Award[] | null;
         }>(
             `
         SELECT
@@ -144,7 +145,16 @@ export async function GET(
                     WHERE user_id = $1 AND role = $2
                     ORDER BY start_date DESC
                 ) e2
-            ) AS experiences
+            ) AS experiences,
+             (
+                SELECT json_agg(a)
+                FROM (
+                    SELECT id, title, issuer, type, description, date, role
+                    FROM award
+                    WHERE user_id = $1 AND (role = $2 OR role IS NULL)
+                    ORDER BY date DESC
+                ) a
+            ) AS awards
         `,
             [userId, role]
         );
@@ -153,12 +163,14 @@ export async function GET(
         const projectRows = combined[0].projects || [];
         const certRows = combined[0].certifications || [];
         const expRows = combined[0].experiences || [];
+        const awardRows = combined[0].awards || [];
 
         const education: Education | undefined = educationRows[0];
 
         const projects: Project[] = projectRows;
         const certifications: Certification[] = certRows;
         const experiences: Experience[] = expRows;
+        const awards: Award[] = awardRows
 
         // 4) NORMALIZE FOR RESGEN (arrays always exist; strings sanitized)
         const formattedEducation = education
@@ -200,6 +212,14 @@ export async function GET(
             highlights: e.description ? [safe(e.description)] : [],
         } : e));
 
+        const formattedAwards = awards.map((a) => ({
+            title: safe(a.title),
+            issuer: safe(a.issuer),
+            type: safe(a.type), // e.g., "First Prize", "Participation"
+            date: safe(a.date),
+            highlights: a.description ? [safe(a.description)] : [],
+        }));
+
         const payload = {
             name: fullName,
             role,
@@ -212,6 +232,7 @@ export async function GET(
             courses,
             projects: formattedProjects,
             experiences: formattedExperiences,
+            awards: formattedAwards
         };
 
         // 5) CALL RESGEN
