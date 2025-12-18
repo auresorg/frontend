@@ -49,6 +49,30 @@ export const nextBase = process.env.NODE_ENV === 'development' ? "http://localho
 
 export const githubClientId = process.env.NODE_ENV === 'development' ? "Ov23liJo0fFiBs7gz61V" : "Ov23liRnBHFmSxtVRHVK";
 
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+const isTokenExpired = (token: string) => {
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expirationTime = payload.exp * 1000;
+        return Date.now() >= (expirationTime - 10000); // 10s buffer
+    } catch (e) {
+        return true;
+    }
+};
+
 export const API = axios.create({
     baseURL: host + "/api",
     headers: {
@@ -63,18 +87,84 @@ export const BaseAPI = axios.create({
     },
 });
 
+const attemptRefresh = async (): Promise<string> => {
+    if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+        });
+    }
+
+    isRefreshing = true;
+
+    try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (!refreshToken) throw new Error("No refresh token");
+
+        const { data } = await BaseAPI.post('/api/token/refresh', { 
+            refresh_token: refreshToken 
+        });
+
+        localStorage.setItem('token', data.token);
+        if (data.refresh_token) {
+            localStorage.setItem('refresh_token', data.refresh_token);
+        }
+
+        processQueue(null, data.token);
+        return data.token;
+    } catch (err) {
+        processQueue(err, null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/'; 
+        throw err;
+    } finally {
+        isRefreshing = false;
+    }
+};
+
+API.interceptors.request.use(
+    async (config) => {
+        let token = localStorage.getItem('token');
+
+        if (token && isTokenExpired(token)) {
+            try {
+                token = await attemptRefresh();
+            } catch (error) {
+                return Promise.reject(error);
+            }
+        }
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+API.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+            try {
+                const token = await attemptRefresh();
+                originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                return API(originalRequest);
+            } catch (err) {
+                return Promise.reject(err);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const getWithToken = async (url: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    return await API.get(url, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
+    return await API.get(url);
 }
 
 export const getWithTokenCached = async (url: string, ttl = 1000 * 60 * 60) => {
-    //ttl is in milliseconds, default is 1 hour
     const token = localStorage.getItem('token');
     if (!token) return null;
 
@@ -105,7 +195,7 @@ export const getWithTokenCached = async (url: string, ttl = 1000 * 60 * 60) => {
         console.warn("Error reading/parsing cache", e);
     }
 
-    const response = await getWithToken(url);
+    const response = await API.get(url);
     if (!response) return null;
 
     try {
@@ -126,27 +216,17 @@ export const getWithTokenCached = async (url: string, ttl = 1000 * 60 * 60) => {
 
 
 export const postFileWithToken = async (url: string, file: File, name: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
     const formData = new FormData();
     formData.append(name, file);
     return await API.postForm(url, formData, {
         headers: {
-            Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
         },
     });
 }
 
 export const postWithToken = async (url: string, data: Record<string, unknown>) => {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-
-    return await API.post(url, data, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
+    return await API.post(url, data);
 }
 
 export const postWithTokenNextEndpoint = async (url: string, data: Record<string, unknown>) => {
@@ -162,34 +242,22 @@ export const postWithTokenNextEndpoint = async (url: string, data: Record<string
 }
 
 export const deleteWithToken = async (url: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    return await API.delete(url, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
+    return await API.delete(url);
 }
 
 export const putWithToken = async (url: string, data: Record<string, unknown>) => {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    return await API.put(url, data, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
+    return await API.put(url, data);
 }
 
 export const roles = [
-        { value: 'fullstack', label: 'Fullstack Developer' },
-        { value: 'backend', label: 'Backend Developer' },
-        { value: 'frontend', label: 'Frontend Developer' },
-        { value: 'devops', label: 'DevOps Engineer' },
-        { value: 'mobile', label: 'Mobile Developer' },
-        { value: 'aiml', label: 'AI/ML Engineer' },
-        { value: 'product', label: 'Product Manager' },
-        { value: 'qa', label: 'QA Engineer' },
-        { value: 'designer', label: 'Designer' },
-        { value: 'blockchain', label: 'Blockchain Developer' }
-    ]
+    { value: 'fullstack', label: 'Fullstack Developer' },
+    { value: 'backend', label: 'Backend Developer' },
+    { value: 'frontend', label: 'Frontend Developer' },
+    { value: 'devops', label: 'DevOps Engineer' },
+    { value: 'mobile', label: 'Mobile Developer' },
+    { value: 'aiml', label: 'AI/ML Engineer' },
+    { value: 'product', label: 'Product Manager' },
+    { value: 'qa', label: 'QA Engineer' },
+    { value: 'designer', label: 'Designer' },
+    { value: 'blockchain', label: 'Blockchain Developer' }
+]

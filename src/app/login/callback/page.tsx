@@ -36,8 +36,13 @@ function GithubCallbackInner() {
                 try {
                     const response = await BaseAPI.post("/auth/github", { code });
                     if (response.status === 200) {
-                        const { token } = response.data;
+                        const { token, refresh_token } = response.data;
+
                         localStorage.setItem("token", token);
+                        if (refresh_token) {
+                            localStorage.setItem("refresh_token", refresh_token);
+                        }
+
                         response.data.user.skillCount = Object.keys(response.data.user.skills).length
                         setUser(response.data.user);
                         if (response.data.user.firstName) {

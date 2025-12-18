@@ -8,7 +8,6 @@ const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurew
 const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops"]);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const safe = (v: any): string => {
     if (!v) return "";
 

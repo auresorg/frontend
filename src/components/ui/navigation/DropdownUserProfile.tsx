@@ -116,6 +116,7 @@ export function DropdownUserProfile({
                                 className="w-full text-left"
                                 onClick={() => {
                                     localStorage.removeItem("token")
+                                    localStorage.removeItem("refresh_token");
                                     window.location.href = siteConfig.baseLinks.login
                                 }}
                             >
