@@ -26,6 +26,7 @@ export type Project = {
     role?: 'fullstack' | 'backend' | 'frontend' | 'devops' | 'mobile' | 'aiml' | 'product' | 'qa' | 'designer' | 'blockchain';
     startDate: string;
     endDate?: string;
+    url: string;
 };
 
 export type Education = {

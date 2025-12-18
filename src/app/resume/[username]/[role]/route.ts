@@ -121,7 +121,7 @@ export async function GET(
             (
                 SELECT json_agg(p)
                 FROM (
-                    SELECT id, name, repo, tech, description, role, start_date AS "startDate", end_date AS "endDate"
+                    SELECT id, name, repo, url, tech, description, role, start_date AS "startDate", end_date AS "endDate"
                     FROM project
                     WHERE user_id = $1 AND role = $2
                     ORDER BY start_date DESC
@@ -195,7 +195,7 @@ export async function GET(
 
         const formattedProjects = projects.map((p) => (typeof p === "object" ? {
             title: safe(p.name),
-            url: safe(p.repo),
+            url: safe(p.url || "https://github.com/"+p.repo),
             skills: Array.isArray(p.tech) ? p.tech : [],
             highlights: p.description ? [safe(p.description)] : [],
             from_date: safe(p.startDate),
@@ -243,7 +243,7 @@ export async function GET(
 
         if (!gen.ok) {
             let errBody = "";
-            try { errBody = await gen.text(); } catch (e) { }
+            try { errBody = await gen.text(); } catch { }
 
             return NextResponse.json(
                 {

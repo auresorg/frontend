@@ -100,7 +100,6 @@ export default function EntityTable({ config }: EntityTableProps) {
                     if (isAxiosError(error)) {
                         if (error.response?.status === 401) {
                             localStorage.removeItem("token");
-                            localStorage.removeItem("refresh_token");
                             PresetDialog("sessionExpired");
                         } else if (error.code === "ERR_NETWORK") {
                             PresetDialog("networkError");

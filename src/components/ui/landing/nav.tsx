@@ -19,7 +19,7 @@ function Nav() {
     ];
 
     useEffect(() => {
-        setLoggedIn(localStorage.getItem("refresh_token") ? true : false)
+        setLoggedIn(localStorage.getItem("token") ? true : false)
 
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);

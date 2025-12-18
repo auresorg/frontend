@@ -174,6 +174,13 @@ export const ENTITY_CONFIGS: Record<EntityType, EntityConfig> = {
                 required: true,
             },
             {
+                name: 'url',
+                label: 'URL',
+                type: 'text',
+                placeholder: 'https://aures.vishok.me/',
+                required: false,
+            },
+            {
                 name: 'tech',
                 label: 'Technologies',
                 type: 'text',

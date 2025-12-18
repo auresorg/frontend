@@ -1,6 +1,5 @@
 "use client"
 
-import { siteConfig } from "@/app/siteConfig"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -15,6 +14,7 @@ import {
     DropdownMenuSubMenuTrigger,
     DropdownMenuTrigger,
 } from "@/components/DropdownMenu"
+import { BaseAPI } from "@/lib/utils"
 import { ArrowUpRight, Monitor, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
@@ -114,10 +114,16 @@ export function DropdownUserProfile({
                         <DropdownMenuItem>
                             <button
                                 className="w-full text-left"
-                                onClick={() => {
-                                    localStorage.removeItem("token")
-                                    localStorage.removeItem("refresh_token");
-                                    window.location.href = siteConfig.baseLinks.login
+                                onClick={async () => {
+                                    try {
+                                        await BaseAPI.post('/auth/logout');
+                                    } catch (error) {
+                                        console.warn("Logout failed on server, forcing local cleanup", error);
+                                    } finally {
+                                        localStorage.removeItem("token");
+                                        localStorage.removeItem("user");
+                                        window.location.href = "/";
+                                    }
                                 }}
                             >
                                 Sign out

@@ -50,8 +50,11 @@ export const nextBase = process.env.NODE_ENV === 'development' ? "http://localho
 export const githubClientId = process.env.NODE_ENV === 'development' ? "Ov23liJo0fFiBs7gz61V" : "Ov23liRnBHFmSxtVRHVK";
 
 let isRefreshing = false;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let failedQueue: any[] = [];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const processQueue = (error: any, token: string | null = null) => {
     failedQueue.forEach(prom => {
         if (error) {
@@ -68,13 +71,14 @@ const isTokenExpired = (token: string) => {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const expirationTime = payload.exp * 1000;
         return Date.now() >= (expirationTime - 10000); // 10s buffer
-    } catch (e) {
+    } catch {
         return true;
     }
 };
 
 export const API = axios.create({
     baseURL: host + "/api",
+    withCredentials: true,
     headers: {
         "Content-Type": "application/json",
     },
@@ -82,6 +86,7 @@ export const API = axios.create({
 
 export const BaseAPI = axios.create({
     baseURL: host,
+    withCredentials: true,
     headers: {
         "Content-Type": "application/json",
     },
@@ -97,24 +102,15 @@ const attemptRefresh = async (): Promise<string> => {
     isRefreshing = true;
 
     try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) throw new Error("No refresh token");
-
-        const { data } = await BaseAPI.post('/api/token/refresh', { 
-            refresh_token: refreshToken 
-        });
+        const { data } = await BaseAPI.post('/api/token/refresh', {}); 
 
         localStorage.setItem('token', data.token);
-        if (data.refresh_token) {
-            localStorage.setItem('refresh_token', data.refresh_token);
-        }
-
+        
         processQueue(null, data.token);
         return data.token;
     } catch (err) {
         processQueue(err, null);
         localStorage.removeItem('token');
-        localStorage.removeItem('refresh_token');
         window.location.href = '/'; 
         throw err;
     } finally {
