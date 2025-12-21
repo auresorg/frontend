@@ -69,3 +69,12 @@ export type Experience = {
     description: string;
     role: string;
 } & Record<string, unknown>;
+
+export type UserExt = {
+    showEmail: boolean;
+    showProjects: boolean;
+    showExperience: boolean;
+    showCertifications: boolean;
+    showEducation: boolean;
+    showAwards: boolean;
+}

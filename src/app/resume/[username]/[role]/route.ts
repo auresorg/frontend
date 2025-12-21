@@ -72,7 +72,7 @@ export async function GET(
         }
 
         const users = await query<User>(
-            `SELECT id, username, email, avatarurl, firstname, lastname, linkedin, portfolio, leetcode, plan, skills, projectscount, certcount, awardscount, experiencecount FROM users WHERE username = $1 LIMIT 1`,
+            `SELECT id, username, email, avatarurl, firstname as "firstName", lastname as "lastName", linkedin, portfolio, leetcode, plan, skills, projectscount, certcount, awardscount, experiencecount FROM users WHERE username = $1 LIMIT 1`,
             [username]
         );
         const user = users[0];

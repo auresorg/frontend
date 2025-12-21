@@ -9,6 +9,7 @@ import { Textarea } from '@/components/Textarea';
 import { useEffect, useState } from 'react';
 import type { Education } from '@/lib/types';
 import { useEducationStore } from '@/store/educationStore';
+import { useUserStore } from '@/store/userStore'; // Import the store
 import { getWithToken, putWithToken } from '@/lib/utils';
 import { isAxiosError } from 'axios';
 import { usePresetDialog } from '@/lib/dialogs';
@@ -16,6 +17,9 @@ import { toast } from '@/lib/useToast';
 
 export default function Settings() {
     const { education, setEducation, updateEducation, hasLoaded, setHasLoaded } = useEducationStore();
+
+    const { user, setUser, updateUser } = useUserStore();
+    const [accountLoading, setAccountLoading] = useState(false);
 
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
@@ -84,7 +88,7 @@ export default function Settings() {
                     description: 'Education information updated successfully.',
                     variant: 'success',
                     duration: 4000,
-                }); 
+                });
             }
         } catch (error) {
             if (isAxiosError(error)) {
@@ -109,10 +113,91 @@ export default function Settings() {
         }
     };
 
+    const [accountData, setAccountData] = useState({
+        firstName: '',
+        lastName: '',
+        username: '',
+        email: '',
+        linkedin: '',
+        portfolio: '',
+        leetcode: ''
+    });
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            if (!user) {
+                try {
+                    const response = await getWithToken('/user');
+                    if (response && response.status === 200) {
+                        setUser(response.data);
+                    }
+                } catch (error) {
+                    // reuse your existing error handling logic here
+                    console.error(error);
+                }
+            }
+        };
+        fetchUser();
+    }, [user, setUser]);
+
+    useEffect(() => {
+        if (user) {
+            setAccountData({
+                firstName: user.firstName || '',
+                lastName: user.lastName || '',
+                username: user.username || '',
+                email: user.email || '',
+                linkedin: user.linkedin || '',
+                portfolio: user.portfolio || '',
+                leetcode: user.leetcode || ''
+            });
+        }
+    }, [user]);
+
+    const handleAccountChange = (field: string, value: string) => {
+        setAccountData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleAccountSubmit = async () => {
+        if (accountLoading) return;
+        setAccountLoading(true);
+        try {
+            // Only send editable fields
+            const payload = {
+                firstName: accountData.firstName,
+                lastName: accountData.lastName,
+                linkedin: accountData.linkedin,
+                portfolio: accountData.portfolio,
+                leetcode: accountData.leetcode
+            };
+
+            const response = await putWithToken('/user', payload);
+            if (response && response.status === 200) {
+                updateUser(payload);
+                toast({
+                    title: 'Success',
+                    description: 'Account details updated successfully.',
+                    variant: 'success',
+                    duration: 4000,
+                });
+            }
+        } catch (error) {
+            if (isAxiosError(error)) {
+                if (error.response?.status === 403) {
+                    presetDialog('sessionExpired');
+                } else {
+                    toast({ title: 'Error', description: 'Failed to update account.', variant: 'error' });
+                }
+            }
+        } finally {
+            setAccountLoading(false);
+        }
+    };
+
     return (
         <div className="obfuscate flex flex-col" style={{ height: 'calc(100vh - 2rem)' }}>
             <h1 className="text-lg font-bold text-gray-900 dark:text-gray-50">
-                General
+                Settings
             </h1>
             <p className="mt-2 text-sm/6 text-gray-500 dark:text-gray-500">
                 Manage your personal details, education information and billing.
@@ -120,39 +205,166 @@ export default function Settings() {
 
             <Tabs defaultValue="account" className="mt-6">
                 <TabsList variant="line" className="w-full">
-                    <TabsTrigger value="account" className="flex-1">Account details</TabsTrigger>
+                    <TabsTrigger value="account" className="flex-1">Account</TabsTrigger>
                     <TabsTrigger value="education" className="flex-1">Education</TabsTrigger>
                     <TabsTrigger value="billing" className="flex-1">Billing</TabsTrigger>
                 </TabsList>
 
                 {/* Account Tab */}
                 <TabsContent value="account" className="mt-6">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-                        Account Information
-                    </h2>
-                    <p className="text-gray-500 dark:text-gray-500">
-                        Hello World - Account settings will be implemented here.
-                    </p>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {/* Fixed Header Section: Title Left, Button Right */}
+                    <div className="flex items-center justify-between pb-4">
                         <div>
-                            <Label htmlFor="account-name">Full Name</Label>
-                            <Input id="account-name" placeholder="John Doe" className="mt-2" />
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                                Account Information
+                            </h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-500">
+                                Update your account details
+                            </p>
                         </div>
-                        <div>
-                            <Label htmlFor="account-email">Email</Label>
-                            <Input id="account-email" type="email" placeholder="john@example.com" className="mt-2" />
+                        <div className="flex-shrink-0">
+                            <Button
+                                onClick={handleAccountSubmit}
+                                isLoading={accountLoading}
+                                // Disable if no changes (Basic check)
+                                disabled={user ? (
+                                    user.firstName === accountData.firstName &&
+                                    user.lastName === accountData.lastName &&
+                                    (user.linkedin || '') === accountData.linkedin &&
+                                    (user.portfolio || '') === accountData.portfolio &&
+                                    (user.leetcode || '') === accountData.leetcode
+                                ) : true}
+                            >
+                                Update
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Scrollable Form Section */}
+                    <div
+                        id="account-form-scroll-container"
+                        className="overflow-y-auto pr-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full"
+                        style={{ maxHeight: 'calc(100vh - 260px)' }}
+                    >
+                        <div className="space-y-6">
+                            {/* Identity Section - 2 Columns */}
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <div>
+                                    <Label htmlFor="account-firstname">First Name</Label>
+                                    <Input
+                                        id="account-firstname"
+                                        value={accountData.firstName}
+                                        onChange={(e) => handleAccountChange('firstName', e.target.value)}
+                                        placeholder="John"
+                                        className="mt-2"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="account-lastname">Last Name</Label>
+                                    <Input
+                                        id="account-lastname"
+                                        value={accountData.lastName}
+                                        onChange={(e) => handleAccountChange('lastName', e.target.value)}
+                                        placeholder="Doe"
+                                        className="mt-2"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="account-username">Username</Label>
+                                    <Input
+                                        id="account-username"
+                                        value={accountData.username}
+                                        disabled
+                                        className="mt-2 bg-gray-50 dark:bg-gray-800 text-gray-500"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="account-email">Email</Label>
+                                    <Input
+                                        id="account-email"
+                                        type="email"
+                                        value={accountData.email}
+                                        disabled
+                                        className="mt-2 bg-gray-50 dark:bg-gray-800 text-gray-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <Divider />
+
+                            {/* Links Section */}
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="account-portfolio">Portfolio URL</Label>
+                                    <Input
+                                        id="account-portfolio"
+                                        type="url"
+                                        value={accountData.portfolio}
+                                        onChange={(e) => handleAccountChange('portfolio', e.target.value)}
+                                        placeholder="https://yourportfolio.com"
+                                        className="mt-2"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="account-linkedin">LinkedIn URL</Label>
+                                    <Input
+                                        id="account-linkedin"
+                                        type="url"
+                                        value={accountData.linkedin}
+                                        onChange={(e) => handleAccountChange('linkedin', e.target.value)}
+                                        placeholder="https://linkedin.com/in/yourprofile"
+                                        className="mt-2"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="account-leetcode">Leetcode Username</Label>
+                                    <Input
+                                        id="account-leetcode"
+                                        value={accountData.leetcode}
+                                        onChange={(e) => handleAccountChange('leetcode', e.target.value)}
+                                        placeholder="mvishok"
+                                        className="mt-2"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Extra padding at bottom so scroll doesn't cut off border */}
+                            <div className="pb-2"></div>
                         </div>
                     </div>
                 </TabsContent>
 
-                {/* Education Tab - Only this content scrolls */}
+                {/* Education Tab */}
                 <TabsContent value="education" className="mt-6">
-                    <div className="flex flex-col" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                    <div className="flex items-center justify-between pb-4">
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                                Education
+                            </h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-500">
+                                Update your educational background
+                            </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                            <Button
+                                type="submit"
+                                onClick={handleSubmit}
+                                isLoading={submitting}
+                                disabled={JSON.stringify(education) === JSON.stringify(educationData)}
+                            >
+                                Update
+                            </Button>
+                        </div>
+                    </div>
 
-                        <div className="space-y-6 overflow-y-auto flex-1">
+                    <div
+                        className="overflow-y-auto pr-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full"
+                        style={{ maxHeight: 'calc(100vh - 260px)' }}
+                    >
+                        <div className="space-y-6">
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
-                                    <Label htmlFor="school" className="font-semibold">
+                                    <Label htmlFor="school">
                                         School/University
                                     </Label>
                                     <Input
@@ -167,7 +379,7 @@ export default function Settings() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="degree" className="font-semibold">
+                                    <Label htmlFor="degree" >
                                         Degree
                                     </Label>
                                     <Input
@@ -183,7 +395,7 @@ export default function Settings() {
                             </div>
 
                             <div>
-                                <Label htmlFor="field" className="font-semibold">
+                                <Label htmlFor="field" >
                                     Field of Study
                                 </Label>
                                 <Input
@@ -199,7 +411,7 @@ export default function Settings() {
 
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
-                                    <Label htmlFor="startDate" className="font-semibold">
+                                    <Label htmlFor="startDate" >
                                         Start Date
                                     </Label>
                                     <Input
@@ -214,7 +426,7 @@ export default function Settings() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="endDate" className="font-semibold">
+                                    <Label htmlFor="endDate" >
                                         End Date
                                     </Label>
                                     <Input
@@ -230,7 +442,7 @@ export default function Settings() {
                             </div>
 
                             <div>
-                                <Label htmlFor="grade" className="font-semibold">
+                                <Label htmlFor="grade" >
                                     Grade/GPA
                                 </Label>
                                 <Input
@@ -245,7 +457,7 @@ export default function Settings() {
                             </div>
 
                             <div>
-                                <Label htmlFor="description" className="font-semibold">
+                                <Label htmlFor="description" >
                                     Description
                                 </Label>
                                 <Textarea
@@ -254,19 +466,11 @@ export default function Settings() {
                                     value={educationData.description}
                                     onChange={(e) => handleEducationChange('description', e.target.value)}
                                     className="mt-2 min-h-[100px]"
-                                    placeholder="Describe your educational experience, projects, achievements..."
+                                    placeholder="Describe your educational experience in a short sentence."
                                     hasError={error === 'description'}
                                 />
                             </div>
-                        </div>
-
-                        <div className="shrink-0">
-                            <Divider className="my-6!" />
-                            <div className="flex items-center justify-end space-x-4">
-                                <Button type="submit" onClick={handleSubmit} isLoading={submitting} disabled={JSON.stringify(education) === JSON.stringify(educationData)}>
-                                    Update
-                                </Button>
-                            </div>
+                            <div className="pb-2"></div>
                         </div>
                     </div>
                 </TabsContent>
