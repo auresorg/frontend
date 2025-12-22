@@ -66,7 +66,7 @@ export async function GET(
     `;
 
     try {
-        const result: any[] = await query(sql, [username, requestedFields]);
+        const result = await query<{ data: unknown }>(sql, [username, requestedFields]);
         
         const userData = result[0]?.data;
 
