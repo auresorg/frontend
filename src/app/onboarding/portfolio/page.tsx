@@ -63,7 +63,6 @@ export default function Portfolio() {
                                 type="url"
                                 value={portfolioLink}
                                 onChange={(e) => setPortfolioLink(e.target.value)}
-                                required
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white sm:text-sm"
                                 placeholder="https://yourportfolio.com"
                             />
@@ -77,11 +76,11 @@ export default function Portfolio() {
                     <Button
                         className="disabled:bg-gray-200 disabled:text-gray-500"
                         type="submit"
-                        disabled={!isFormValid || loading}
-                        aria-disabled={!isFormValid || loading}
+                        disabled={loading}
+                        aria-disabled={loading}
                         isLoading={loading}
                     >
-                        {loading ? "Submitting..." : "Continue"}
+                        {loading ? "Submitting..." : (isFormValid ? "Continue" : "Skip")}
                     </Button>
                 </div>
             </form>

@@ -125,7 +125,7 @@ export default function SocialProfiles() {
                 </fieldset>
                 <div className="mt-6 flex justify-between">
                     <Button type="button" variant="ghost" asChild>
-                        <Link href="/onboarding/social">Back</Link>
+                        <Link href="/onboarding/portfolio">Back</Link>
                     </Button>
                     <Button
                         className="disabled:bg-gray-200 disabled:text-gray-500"
