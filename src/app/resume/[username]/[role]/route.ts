@@ -5,7 +5,7 @@ import { rateLimit } from "@/lib/rateLimit";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
 const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
-const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops"]);
+const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const safe = (v: any): string => {
