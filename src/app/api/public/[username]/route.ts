@@ -2,27 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
 
-function cleanDescriptions<T>(data: T): T {
-    if (Array.isArray(data)) {
-        return (data as unknown[]).map(cleanDescriptions) as T;
-    } 
-    
-    if (data !== null && typeof data === 'object') {
-        const obj = data as Record<string, unknown>;
-        const cleaned: Record<string, unknown> = {};
-
-        for (const [key, value] of Object.entries(obj)) {
-            if ((key === 'desc' || key === 'description') && typeof value === 'string') {
-                cleaned[key] = value.replace(/##\w+##/g, '').trim();
-            } else {
-                cleaned[key] = cleanDescriptions(value);
-            }
-        }
-        return cleaned as T;
-    }
-    
-    return data;
+interface Project {
+    name: string;
+    desc: string;
+    url?: string;
+    tech?: string[];
 }
+
+interface Experience {
+    description?: string;
+    [key: string]: unknown; 
+}
+
+interface Award {
+    description?: string;
+    [key: string]: unknown;
+}
+
+interface UserData {
+    username: string;
+    avatar: string; 
+    email?: string | null;
+    projects?: Project[];
+    experience?: Experience[];
+    awards?: Award[];
+    skills?: string[] | string | null;
+}
+
+// Helper to clean strings
+const clean = (text: string | undefined) => text ? text.replace(/##\w+##/g, '').trim() : "";
 
 export async function GET(
     request: NextRequest,
@@ -40,51 +48,101 @@ export async function GET(
     const { username } = params;
     const searchParams = request.nextUrl.searchParams;
     const selectParam = searchParams.get('select') || request.headers.get('x-select');
-    const requestedFields = selectParam ? selectParam.split(',').map(s => s.trim()) : [];
+
+    if (!selectParam) {
+        return NextResponse.json({ 
+            error: "Missing 'select' parameter. Please specify fields (e.g., ?select=projects,skills)." 
+        }, { status: 400 });
+    }
+
+    const requestedFields = new Set(selectParam.split(',').map(s => s.trim()));
     
+    // 1. Build Query
+    const jsonParts = [
+        "'username', u.username",
+        "'avatar', u.avatarurl"
+    ];
+
+    if (requestedFields.has('email')) {
+        jsonParts.push("'email', CASE WHEN u.showemail IS TRUE THEN u.email ELSE NULL END");
+    }
+
+    if (requestedFields.has('projects')) {
+        jsonParts.push(`
+            'projects', CASE WHEN u.showprojects IS TRUE THEN (
+                SELECT COALESCE(json_agg(
+                    json_build_object('name', p.name, 'desc', p.description, 'url', p.url, 'tech', p.tech)
+                ), '[]'::json) FROM project p WHERE p.user_id = u.id
+            ) ELSE NULL END
+        `);
+    }
+
+    if (requestedFields.has('experience')) {
+        jsonParts.push(`
+            'experience', CASE WHEN u.showexperience IS TRUE THEN (
+                SELECT COALESCE(json_agg(row_to_json(e)), '[]'::json) 
+                FROM experience e WHERE e.user_id = u.id
+            ) ELSE NULL END
+        `);
+    }
+
+    if (requestedFields.has('awards')) {
+        jsonParts.push(`
+            'awards', CASE WHEN u.showawards IS TRUE THEN (
+                SELECT COALESCE(json_agg(row_to_json(a)), '[]'::json) 
+                FROM award a WHERE a.user_id = u.id
+            ) ELSE NULL END
+        `);
+    }
+
+    if (requestedFields.has('skills')) {
+        jsonParts.push("'skills', u.skills");
+    }
+
     const sql = `
-        SELECT json_build_object(
-            'username', u.username,
-            'avatar', u.avatarurl,
-            'email', CASE WHEN u.showemail IS TRUE THEN u.email ELSE NULL END,
-            'projects', CASE 
-                WHEN (('projects' = ANY($2) OR cardinality($2) = 0) AND u.showprojects IS TRUE) 
-                THEN (
-                    SELECT COALESCE(json_agg(
-                        json_build_object('name', p.name, 'desc', p.description, 'url', p.url, 'tech', p.tech)
-                    ), '[]'::json) FROM project p WHERE p.user_id = u.id
-                ) ELSE NULL END,
-            'experience', CASE 
-                WHEN (('experience' = ANY($2) OR cardinality($2) = 0) AND u.showexperience IS TRUE) 
-                THEN (
-                    SELECT COALESCE(json_agg(row_to_json(e)), '[]'::json) 
-                    FROM experience e WHERE e.user_id = u.id
-                ) ELSE NULL END,
-            'awards', CASE 
-                WHEN (('awards' = ANY($2) OR cardinality($2) = 0) AND u.showawards IS TRUE) 
-                THEN (
-                    SELECT COALESCE(json_agg(row_to_json(a)), '[]'::json) 
-                    FROM award a WHERE a.user_id = u.id
-                ) ELSE NULL END,
-            'skills', CASE
-                WHEN ('skills' = ANY($2) OR cardinality($2) = 0) THEN u.skills ELSE NULL END
-        ) AS data
+        SELECT json_build_object(${jsonParts.join(',')}) AS data
         FROM users u
         WHERE u.username = $1
     `;
 
     try {
-        const result = await query<{ data: unknown }>(sql, [username, requestedFields]);
-        
+        const result = await query<{ data: UserData }>(sql, [username]);
         const rawData = result[0]?.data;
 
         if (!rawData) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
-        
-        const userData = cleanDescriptions(rawData);
 
-        return NextResponse.json(userData, {
+        const responseData: Record<string, unknown> = {
+            username: rawData.username,
+            avatar: rawData.avatar,
+        };
+
+        if (rawData.email) responseData.email = rawData.email;
+        if (rawData.skills) responseData.skills = rawData.skills;
+
+        if (rawData.projects) {
+            responseData.projects = rawData.projects.map((p: Project) => ({
+                ...p,
+                desc: clean(p.desc)
+            }));
+        }
+
+        if (rawData.experience) {
+            responseData.experience = rawData.experience.map((e: Experience) => ({
+                ...e,
+                description: clean(e.description)
+            }));
+        }
+
+        if (rawData.awards) {
+            responseData.awards = rawData.awards.map((a: Award) => ({
+                ...a,
+                description: clean(a.description)
+            }));
+        }
+
+        return NextResponse.json(responseData, {
             status: 200,
             headers: {
                 "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30"
