@@ -454,9 +454,7 @@ export default function EntityTable({ config }: EntityTableProps) {
                     ))
                 )}
             </div>
-
-
-
+            
             {/* Edit Dialog */}
             <EditEntityDialog
                 config={config}

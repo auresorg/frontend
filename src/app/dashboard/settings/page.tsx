@@ -15,6 +15,7 @@ import { getWithToken, putWithToken } from '@/lib/utils';
 import { isAxiosError } from 'axios';
 import { usePresetDialog } from '@/lib/dialogs';
 import { toast } from '@/lib/useToast';
+import { Switch } from '@/components/Switch';
 
 export default function Settings() {
     // --- STORES ---
@@ -26,7 +27,7 @@ export default function Settings() {
     const [educationData, setEducationData] = useState<Education>({
         id: '', school: '', degree: '', field: '', startDate: '', endDate: '', grade: '', description: ''
     });
-    
+
     const [accountData, setAccountData] = useState({
         firstName: '', lastName: '', username: '', email: '', linkedin: '', portfolio: '', leetcode: ''
     });
@@ -41,51 +42,61 @@ export default function Settings() {
     const [error, setError] = useState<string | null>(null);
 
     const presetDialog = usePresetDialog();
-    const fetchedRef = useRef(false);
+    const fetchedUserRef = useRef(false);
 
-    // Data fetching
+    // 1. Fetch User Profile immediately (Default Tab)
     useEffect(() => {
-        if (fetchedRef.current) return;
-        fetchedRef.current = true;
+        if (fetchedUserRef.current || user) return;
+        fetchedUserRef.current = true;
 
-        const loadAllData = async () => {
+        const loadUser = async () => {
             try {
-                // 1. Education
-                if (!eduLoaded) {
-                    const eduRes = await getWithToken('/education');
-                    if (eduRes?.status === 200) {
-                        setEducation(eduRes.data);
-                        setEduLoaded(true);
-                    }
-                }
-
-                // 2. User Profile
-                if (!user) {
-                    const userRes = await getWithToken('/user');
-                    if (userRes?.status === 200) setUser(userRes.data);
-                }
-
-                // 3. Privacy Settings (Fetch specific endpoint)
-                if (!ext) {
-                    const privRes = await getWithToken('/user/privacy');
-                    if (privRes?.status === 200) setExt(privRes.data);
-                }
-
+                const userRes = await getWithToken('/user');
+                if (userRes?.status === 200) setUser(userRes.data);
             } catch (err) {
                 if (isAxiosError(err) && err.response?.status === 403) {
                     presetDialog('sessionExpired');
                 } else {
-                    console.error("Failed to load settings data", err);
+                    console.error("Failed to load user data", err);
                 }
             }
         };
+        loadUser();
+    }, [user, setUser, presetDialog]);
 
-        loadAllData();
-    }, [eduLoaded, user, ext, setEducation, setEduLoaded, setUser, setExt, presetDialog]);
+    // Lazy Load Handlers
+    const handleTabChange = (value: string) => {
+        if (value === 'education' && !eduLoaded) {
+            loadEducation();
+        } else if (value === 'privacy' && !ext) {
+            loadPrivacy();
+        }
+    };
 
-    // Sync local state with store data
+    const loadEducation = async () => {
+        try {
+            const eduRes = await getWithToken('/education');
+            if (eduRes?.status === 200) {
+                setEducation(eduRes.data);
+                setEduLoaded(true);
+            }
+        } catch (err) {
+            if (isAxiosError(err) && err.response?.status === 403) presetDialog('sessionExpired');
+        }
+    };
+
+    const loadPrivacy = async () => {
+        try {
+            const privRes = await getWithToken('/user/privacy');
+            if (privRes?.status === 200) setExt(privRes.data);
+        } catch (err) {
+            if (isAxiosError(err) && err.response?.status === 403) presetDialog('sessionExpired');
+        }
+    };
+
+    // Sync local state
     useEffect(() => { if (education) setEducationData(education); }, [education]);
-    
+
     useEffect(() => {
         if (user) {
             setAccountData({
@@ -135,7 +146,7 @@ export default function Settings() {
                 updateUser(payload);
                 toast({ title: 'Success', description: 'Account updated.', variant: 'success', duration: 4000 });
             }
-        } catch (err) { handleError(err); } 
+        } catch (err) { handleError(err); }
         finally { setSubmittingAcc(false); }
     };
 
@@ -148,7 +159,7 @@ export default function Settings() {
                 updateEducation(educationData);
                 toast({ title: 'Success', description: 'Education updated.', variant: 'success', duration: 4000 });
             }
-        } catch (err) { handleError(err); } 
+        } catch (err) { handleError(err); }
         finally { setSubmittingEdu(false); }
     };
 
@@ -161,7 +172,7 @@ export default function Settings() {
                 updateExt(privacyData);
                 toast({ title: 'Success', description: 'Privacy settings updated.', variant: 'success', duration: 4000 });
             }
-        } catch (err) { handleError(err); } 
+        } catch (err) { handleError(err); }
         finally { setSubmittingPriv(false); }
     };
 
@@ -170,7 +181,7 @@ export default function Settings() {
             <h1 className="text-lg font-bold text-gray-900 dark:text-gray-50">Settings</h1>
             <p className="mt-2 text-sm/6 text-gray-500 dark:text-gray-500">Manage your personal details, education and privacy.</p>
 
-            <Tabs defaultValue="account" className="mt-6">
+            <Tabs defaultValue="account" className="mt-6" onValueChange={handleTabChange}>
                 <TabsList variant="line" className="w-full">
                     <TabsTrigger value="account" className="flex-1">Account</TabsTrigger>
                     <TabsTrigger value="education" className="flex-1">Education</TabsTrigger>
@@ -184,9 +195,9 @@ export default function Settings() {
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Account Information</h2>
                             <p className="text-sm text-gray-500 dark:text-gray-500">Update your account details</p>
                         </div>
-                        <div className="flex-shrink-0">
-                            <Button 
-                                onClick={handleAccountSubmit} 
+                        <div className="shrink-0">
+                            <Button
+                                onClick={handleAccountSubmit}
                                 isLoading={submittingAcc}
                                 disabled={user ? (
                                     user.firstName === accountData.firstName && user.lastName === accountData.lastName &&
@@ -197,21 +208,43 @@ export default function Settings() {
                         </div>
                     </div>
                     <div className="overflow-y-auto pr-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ maxHeight: 'calc(100vh - 260px)' }}>
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div><Label htmlFor="afn">First Name</Label><Input id="afn" value={accountData.firstName} onChange={(e) => setAccountData({...accountData, firstName: e.target.value})} placeholder="John" className="mt-2" /></div>
-                                <div><Label htmlFor="aln">Last Name</Label><Input id="aln" value={accountData.lastName} onChange={(e) => setAccountData({...accountData, lastName: e.target.value})} placeholder="Doe" className="mt-2" /></div>
-                                <div><Label htmlFor="aun">Username</Label><Input id="aun" value={accountData.username} disabled className="mt-2 bg-gray-50 dark:bg-gray-800 text-gray-500" /></div>
-                                <div><Label htmlFor="aem">Email</Label><Input id="aem" type="email" value={accountData.email} disabled className="mt-2 bg-gray-50 dark:bg-gray-800 text-gray-500" /></div>
+                        {!user ? (
+                            <div className="space-y-6 animate-pulse">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <div key={i}>
+                                            <div className="h-4 w-20 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div>
+                                            <div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Divider />
+                                <div className="space-y-4">
+                                    {[1, 2, 3].map((i) => (
+                                        <div key={i}>
+                                            <div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div>
+                                            <div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <Divider />
-                            <div className="space-y-4">
-                                <div><Label htmlFor="apo">Portfolio URL</Label><Input id="apo" type="url" value={accountData.portfolio} onChange={(e) => setAccountData({...accountData, portfolio: e.target.value})} placeholder="https://..." className="mt-2" /></div>
-                                <div><Label htmlFor="ali">LinkedIn URL</Label><Input id="ali" type="url" value={accountData.linkedin} onChange={(e) => setAccountData({...accountData, linkedin: e.target.value})} placeholder="https://linkedin.com/..." className="mt-2" /></div>
-                                <div><Label htmlFor="alc">Leetcode Username</Label><Input id="alc" value={accountData.leetcode} onChange={(e) => setAccountData({...accountData, leetcode: e.target.value})} placeholder="mvishok" className="mt-2" /></div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div><Label htmlFor="afn">First Name</Label><Input id="afn" value={accountData.firstName} onChange={(e) => setAccountData({ ...accountData, firstName: e.target.value })} placeholder="John" className="mt-2" /></div>
+                                    <div><Label htmlFor="aln">Last Name</Label><Input id="aln" value={accountData.lastName} onChange={(e) => setAccountData({ ...accountData, lastName: e.target.value })} placeholder="Doe" className="mt-2" /></div>
+                                    <div><Label htmlFor="aun">Username</Label><Input id="aun" value={accountData.username} disabled className="mt-2 bg-gray-50 dark:bg-gray-800 text-gray-500" /></div>
+                                    <div><Label htmlFor="aem">Email</Label><Input id="aem" type="email" value={accountData.email} disabled className="mt-2 bg-gray-50 dark:bg-gray-800 text-gray-500" /></div>
+                                </div>
+                                <Divider />
+                                <div className="space-y-4">
+                                    <div><Label htmlFor="apo">Portfolio URL</Label><Input id="apo" type="url" value={accountData.portfolio} onChange={(e) => setAccountData({ ...accountData, portfolio: e.target.value })} placeholder="https://..." className="mt-2" /></div>
+                                    <div><Label htmlFor="ali">LinkedIn URL</Label><Input id="ali" type="url" value={accountData.linkedin} onChange={(e) => setAccountData({ ...accountData, linkedin: e.target.value })} placeholder="https://linkedin.com/..." className="mt-2" /></div>
+                                    <div><Label htmlFor="alc">Leetcode Username</Label><Input id="alc" value={accountData.leetcode} onChange={(e) => setAccountData({ ...accountData, leetcode: e.target.value })} placeholder="mvishok" className="mt-2" /></div>
+                                </div>
+                                <div className="pb-2"></div>
                             </div>
-                            <div className="pb-2"></div>
-                        </div>
+                        )}
                     </div>
                 </TabsContent>
 
@@ -222,25 +255,41 @@ export default function Settings() {
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Education</h2>
                             <p className="text-sm text-gray-500 dark:text-gray-500">Update your educational background</p>
                         </div>
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                             <Button type="submit" onClick={handleEducationSubmit} isLoading={submittingEdu} disabled={JSON.stringify(education) === JSON.stringify(educationData)}>Update</Button>
                         </div>
                     </div>
                     <div className="overflow-y-auto pr-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ maxHeight: 'calc(100vh - 260px)' }}>
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div><Label htmlFor="esc">School/University</Label><Input id="esc" value={educationData.school} onChange={(e) => setEducationData({...educationData, school: e.target.value})} placeholder="University" className="mt-2" hasError={error === 'school'} /></div>
-                                <div><Label htmlFor="edg">Degree</Label><Input id="edg" value={educationData.degree} onChange={(e) => setEducationData({...educationData, degree: e.target.value})} className="mt-2" hasError={error === 'degree'} placeholder='e.g. B.Tech' /></div>
+                        {!eduLoaded ? (
+                            <div className="space-y-6 animate-pulse">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div><div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div><div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded"></div></div>
+                                    <div><div className="h-4 w-20 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div><div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded"></div></div>
+                                </div>
+                                <div><div className="h-4 w-28 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div><div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded"></div></div>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div><div className="h-4 w-20 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div><div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded"></div></div>
+                                    <div><div className="h-4 w-20 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div><div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded"></div></div>
+                                </div>
+                                <div><div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div><div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded"></div></div>
+                                <div><div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div><div className="h-28 w-full bg-gray-200 dark:bg-gray-800 rounded"></div></div>
                             </div>
-                            <div><Label htmlFor="efd">Field of Study</Label><Input id="efd" value={educationData.field} onChange={(e) => setEducationData({...educationData, field: e.target.value})} className="mt-2" hasError={error === 'field'} placeholder="Computer Science" /></div>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div><Label htmlFor="esd">Start Date</Label><Input id="esd" type="date" value={educationData.startDate} onChange={(e) => setEducationData({...educationData, startDate: e.target.value})} className="mt-2" hasError={error === 'startDate'} /></div>
-                                <div><Label htmlFor="eed">End Date</Label><Input id="eed" type="date" value={educationData.endDate} onChange={(e) => setEducationData({...educationData, endDate: e.target.value})} className="mt-2" hasError={error === 'endDate'} /></div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div><Label htmlFor="esc">School/University</Label><Input id="esc" value={educationData.school} onChange={(e) => setEducationData({ ...educationData, school: e.target.value })} placeholder="University" className="mt-2" hasError={error === 'school'} /></div>
+                                    <div><Label htmlFor="edg">Degree</Label><Input id="edg" value={educationData.degree} onChange={(e) => setEducationData({ ...educationData, degree: e.target.value })} className="mt-2" hasError={error === 'degree'} placeholder='e.g. B.Tech' /></div>
+                                </div>
+                                <div><Label htmlFor="efd">Field of Study</Label><Input id="efd" value={educationData.field} onChange={(e) => setEducationData({ ...educationData, field: e.target.value })} className="mt-2" hasError={error === 'field'} placeholder="Computer Science" /></div>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div><Label htmlFor="esd">Start Date</Label><Input id="esd" type="date" value={educationData.startDate} onChange={(e) => setEducationData({ ...educationData, startDate: e.target.value })} className="mt-2" hasError={error === 'startDate'} /></div>
+                                    <div><Label htmlFor="eed">End Date</Label><Input id="eed" type="date" value={educationData.endDate} onChange={(e) => setEducationData({ ...educationData, endDate: e.target.value })} className="mt-2" hasError={error === 'endDate'} /></div>
+                                </div>
+                                <div><Label htmlFor="egr">Grade/GPA</Label><Input id="egr" value={educationData.grade} onChange={(e) => setEducationData({ ...educationData, grade: e.target.value })} className="mt-2" placeholder="e.g. 3.8 GPA" hasError={error === 'grade'} /></div>
+                                <div><Label htmlFor="eds">Description</Label><Textarea id="eds" value={educationData.description} onChange={(e) => setEducationData({ ...educationData, description: e.target.value })} className="mt-2 min-h-[100px]" placeholder="Description..." hasError={error === 'description'} /></div>
+                                <div className="pb-2"></div>
                             </div>
-                            <div><Label htmlFor="egr">Grade/GPA</Label><Input id="egr" value={educationData.grade} onChange={(e) => setEducationData({...educationData, grade: e.target.value})} className="mt-2" placeholder="e.g. 3.8 GPA" hasError={error === 'grade'} /></div>
-                            <div><Label htmlFor="eds">Description</Label><Textarea id="eds" value={educationData.description} onChange={(e) => setEducationData({...educationData, description: e.target.value})} className="mt-2 min-h-[100px]" placeholder="Description..." hasError={error === 'description'} /></div>
-                            <div className="pb-2"></div>
-                        </div>
+                        )}
                     </div>
                 </TabsContent>
 
@@ -251,10 +300,10 @@ export default function Settings() {
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Privacy & Visibility</h2>
                             <p className="text-sm text-gray-500 dark:text-gray-500">Control what data is exposed via the API</p>
                         </div>
-                        <div className="flex-shrink-0">
-                            <Button 
-                                onClick={handlePrivacySubmit} 
-                                isLoading={submittingPriv} 
+                        <div className="shrink-0">
+                            <Button
+                                onClick={handlePrivacySubmit}
+                                isLoading={submittingPriv}
                                 disabled={ext ? (
                                     ext.showEmail === privacyData.showEmail && ext.showProjects === privacyData.showProjects &&
                                     ext.showExperience === privacyData.showExperience && ext.showCertifications === privacyData.showCertifications &&
@@ -264,30 +313,42 @@ export default function Settings() {
                         </div>
                     </div>
                     <div className="overflow-y-auto pr-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ maxHeight: 'calc(100vh - 260px)' }}>
-                        <div className="space-y-3">
-                            {[
-                                { id: 'showEmail', label: 'Show Email Address', sub: 'Warning: Disabling this will hide your email from public view.', warn: true },
-                                { id: 'showProjects', label: 'Show Projects', sub: 'Allow public access to your projects.' },
-                                { id: 'showExperience', label: 'Show Experience', sub: 'Display your work history.' },
-                                { id: 'showEducation', label: 'Show Education', sub: 'Display your educational background.' },
-                                { id: 'showCertifications', label: 'Show Certifications', sub: 'Showcase your certifications.' },
-                                { id: 'showAwards', label: 'Show Awards', sub: 'Highlight your achievements.' }
-                            ].map((item) => (
-                                <div key={item.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/50">
-                                    <div className="flex flex-col">
-                                        <span className={`font-medium ${item.warn ? 'text-gray-900 dark:text-gray-100' : 'text-gray-900 dark:text-gray-100'}`}>{item.label}</span>
-                                        <span className={`text-sm ${item.warn ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>{item.sub}</span>
+                        {!ext ? (
+                            <div className="space-y-3 animate-pulse">
+                                {[1, 2, 3, 4, 5, 6].map((i) => (
+                                    <div key={i} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/50">
+                                        <div className="flex flex-col pr-4 gap-2 w-full">
+                                            <div className="h-4 w-40 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                            <div className="h-3 w-64 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                        </div>
+                                        <div className="h-5 w-9 bg-gray-200 dark:bg-gray-800 rounded-full shrink-0"></div>
                                     </div>
-                                    <input 
-                                        type="checkbox" 
-                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                        checked={privacyData[item.id as keyof typeof privacyData]} 
-                                        onChange={(e) => setPrivacyData({ ...privacyData, [item.id]: e.target.checked })} 
-                                    />
-                                </div>
-                            ))}
-                            <div className="pb-2"></div>
-                        </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {[
+                                    { id: 'showEmail', label: 'Show Email Address', sub: 'Warning: Disabling this will hide your email from public view.', warn: true },
+                                    { id: 'showProjects', label: 'Show Projects', sub: 'Allow public access to your projects.' },
+                                    { id: 'showExperience', label: 'Show Experience', sub: 'Display your work history.' },
+                                    { id: 'showEducation', label: 'Show Education', sub: 'Display your educational background.' },
+                                    { id: 'showCertifications', label: 'Show Certifications', sub: 'Showcase your certifications.' },
+                                    { id: 'showAwards', label: 'Show Awards', sub: 'Highlight your achievements.' }
+                                ].map((item) => (
+                                    <div key={item.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900/50">
+                                        <div className="flex flex-col pr-4">
+                                            <span className={`font-medium ${item.warn ? 'text-gray-900 dark:text-gray-100' : 'text-gray-900 dark:text-gray-100'}`}>{item.label}</span>
+                                            <span className={`text-sm ${item.warn ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>{item.sub}</span>
+                                        </div>
+                                        <Switch
+                                            checked={privacyData[item.id as keyof typeof privacyData]}
+                                            onCheckedChange={(checked) => setPrivacyData({ ...privacyData, [item.id]: checked })}
+                                        />
+                                    </div>
+                                ))}
+                                <div className="pb-2"></div>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>
