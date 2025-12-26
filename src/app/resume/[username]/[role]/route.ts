@@ -7,13 +7,34 @@ const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
 const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
 const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]);
 
+// Define these OUTSIDE the function so they are created only once in memory
+const ESCAPE_MAP: Record<string, string> = {
+    '\\': '\\textbackslash',
+    '&': '\\&',
+    '%': '\\%',
+    '$': '\\$',
+    '#': '\\#',
+    '_': '\\_',
+    '{': '\\{',
+    '}': '\\}',
+    '~': '\\textasciitilde',
+    '^': '\\textasciicircum',
+    '\u2013': '-', // En dash
+    '\u2014': '-', // Em dash
+    '\u00A0': ' '  // Non-breaking space
+};
+
+// Compile regex once. Matches all special chars + unicode artifacts
+const ESCAPE_REGEX = /[\\&%$#_{}~^\u2013\u2014\u00A0]/g;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const safe = (v: any): string => {
-    if (!v) return "";
+    // 1. Fast exit for null/undefined/empty
+    if (v == null || v === "") return "";
 
     let s = String(v);
 
-    // --- strip any leading ##FORMAT## block ---
+    // 2. Strip ##FORMAT## block (Must happen BEFORE escaping #)
     if (s.startsWith("##")) {
         const end = s.indexOf("##", 2);
         if (end !== -1) {
@@ -21,11 +42,9 @@ const safe = (v: any): string => {
         }
     }
 
-    // --- normalize odd unicode dash/space artifacts if needed ---
-    s = s.replace(/\u2013|\u2014/g, "-")  // long dashes → hyphen
-        .replace(/\u00A0/g, " ");       // non-breaking space → space
-
-    return s;
+    // 3. Single-pass replacement for everything else
+    // If no special chars exist, V8 is smart enough to return original string
+    return s.replace(ESCAPE_REGEX, (match) => ESCAPE_MAP[match]);
 };
 
 function fullUrl(p: string) {
