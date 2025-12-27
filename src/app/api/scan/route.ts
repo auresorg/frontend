@@ -1,6 +1,6 @@
 import { verify } from "jsonwebtoken";
 import { Groq } from "groq-sdk";
-import { rateLimit } from "@/lib/rateLimit";
+import { rateLimit } from "@/lib/valkey";
 
 const awardScanPrompt: string = `
 You are an AI that extracts structured award information from OCR text of certificates. 

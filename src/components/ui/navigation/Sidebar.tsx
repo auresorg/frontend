@@ -4,8 +4,8 @@ import { Tooltip } from "@/components/Tooltip"
 import { cx, focusRing } from "@/lib/utils"
 import {
     BriefcaseBusiness,
-    Compass,
     FileBadge,
+    FileText,
     Flame,
     FolderClosed,
     PanelRightClose,
@@ -37,6 +37,10 @@ const navigation = [
         href: siteConfig.baseLinks.experiences,
         icon: BriefcaseBusiness,
     },
+] as const
+
+const systemNavigation = [
+    { name: "Role Resumes", href: siteConfig.baseLinks.roleres, icon: FileText },
 ] as const
 
 interface SidebarProps {
@@ -166,50 +170,55 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
                                     isCollapsed ? "opacity-0" : "opacity-100",
                                 )}
                             >
-                                Setup
+                                Artifacts
                             </span>
                             <ul role="list" className="mt-1 space-y-2">
-                                <li>
-                                    {isCollapsed ? (
-                                        <Tooltip
-                                            side="right"
-                                            content="Onboarding"
-                                            sideOffset={6}
-                                            showArrow={false}
-                                            className="z-999"
-                                        >
+                                {systemNavigation.map((item) => (
+                                    <li key={item.name}>
+                                        {isCollapsed ? (
+                                            <Tooltip
+                                                side="right"
+                                                content={item.name}
+                                                sideOffset={6}
+                                                showArrow={false}
+                                                className="z-999"
+                                            >
+                                                <Link
+                                                    href={item.href}
+                                                    className={cx(
+                                                        isActive(item.href)
+                                                            ? "text-blue-600 dark:text-blue-500"
+                                                            : "text-gray-700 dark:text-gray-300",
+                                                        "inline-flex items-center rounded-md p-2 text-sm font-medium transition hover:bg-gray-200/50 hover:dark:bg-gray-900",
+                                                        focusRing,
+                                                    )}
+                                                >
+                                                    <item.icon
+                                                        className="size-5 shrink-0"
+                                                        aria-hidden="true"
+                                                    />
+                                                </Link>
+                                            </Tooltip>
+                                        ) : (
                                             <Link
-                                                href={siteConfig.baseLinks.onboarding}
+                                                href={item.href}
                                                 className={cx(
-                                                    isActive("/onboarding")
+                                                    isActive(item.href)
                                                         ? "text-blue-600 dark:text-blue-500"
                                                         : "text-gray-700 dark:text-gray-300",
-                                                    "inline-flex items-center rounded-md p-2 text-sm font-medium transition hover:bg-gray-200/50 hover:dark:bg-gray-900",
+                                                    "flex items-center gap-x-2.5 rounded-md p-2 text-sm font-medium transition hover:bg-gray-200/50 hover:dark:bg-gray-900",
                                                     focusRing,
                                                 )}
                                             >
-                                                <Compass
+                                                <item.icon
                                                     className="size-5 shrink-0"
                                                     aria-hidden="true"
                                                 />
+                                                {item.name}
                                             </Link>
-                                        </Tooltip>
-                                    ) : (
-                                        <Link
-                                            href="/onboarding/name"
-                                            className={cx(
-                                                isActive("/onboarding")
-                                                    ? "text-blue-600 dark:text-blue-500"
-                                                    : "text-gray-700 dark:text-gray-300",
-                                                "flex items-center gap-x-2.5 rounded-md p-2 text-sm font-medium transition hover:bg-gray-200/50 hover:dark:bg-gray-900",
-                                                focusRing,
-                                            )}
-                                        >
-                                            <Compass className="size-5 shrink-0" aria-hidden="true" />
-                                            Onboarding
-                                        </Link>
-                                    )}
-                                </li>
+                                        )}
+                                    </li>
+                                ))}
                             </ul>
                         </div>
                     </nav>

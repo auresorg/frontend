@@ -9,7 +9,8 @@ export const siteConfig = {
     awards: "/dashboard/awards",
     experiences : "/dashboard/experience",
     login: "/",
-    onboarding: "/onboarding/name",
+    onboarding: "/dashboard/onboarding",
+    roleres: "/dashboard/roleres",
   },
 }
 

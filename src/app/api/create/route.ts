@@ -1,6 +1,6 @@
 import { verify } from "jsonwebtoken";
 import { Groq } from "groq-sdk";
-import { rateLimit } from "@/lib/rateLimit";
+import { rateLimit } from "@/lib/valkey";
 
 // Award prompts
 const awardAndRolePrompt: string = `You are an expert technical resume writer specializing in awards, hackathons, and achievements.  

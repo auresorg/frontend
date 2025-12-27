@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { rateLimit } from "@/lib/rateLimit";
+import { rateLimit } from "@/lib/valkey";
 
 interface Project {
     name: string;

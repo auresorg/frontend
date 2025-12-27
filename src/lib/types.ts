@@ -78,3 +78,16 @@ export type UserExt = {
     showEducation: boolean;
     showAwards: boolean;
 }
+
+export interface ResumeStats {
+    projects: number;
+    certificates: number;
+    awards: number;
+    experience: number;
+}
+
+export interface ResumeItem {
+    role: string;
+    last_compiled: string | null;
+    stats: ResumeStats;
+}

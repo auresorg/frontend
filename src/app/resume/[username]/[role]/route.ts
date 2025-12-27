@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import type { User, Project, Education, Certification, Experience, Award } from "@/lib/types";
-import { rateLimit } from "@/lib/rateLimit";
+import { rateLimit } from "@/lib/valkey";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
 const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
@@ -282,11 +282,10 @@ export async function GET(
         const storedPath = `/storage/v1/object/public/aurespdf/${filename}`;
 
         await query(
-            `INSERT INTO resumes (user_id, username, role, url, compiled_at) 
-            VALUES ($1, $2, $3, $4, NOW()) 
-            ON CONFLICT (username, role) 
-            DO UPDATE SET url = EXCLUDED.url, compiled_at = EXCLUDED.compiled_at`,
-            [userId, username, role, storedPath]
+            `UPDATE resumes 
+            SET url = $1, compiled_at = NOW() 
+            WHERE username = $2 AND role = $3`,
+            [storedPath, username, role]
         );
 
         return new NextResponse(pdfBuffer, {
