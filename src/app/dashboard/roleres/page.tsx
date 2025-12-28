@@ -70,11 +70,26 @@ export default function ResumeDashboard() {
     };
 
     const handleDownload = (role: string, type: 'pdf' | 'tex') => {
-        console.log(`Downloading ${role}.${type}`);
+        //download link
+        console.log(type);
+        let url;
+        if (type === 'pdf') {
+            url = `http://${domain}/resume/${user?.username}/${role}`;
+        }
+        
+        //initiate download of the file without opening in new tab or navigating
+        const link = document.createElement('a');
+        link.href = url!;
+        link.download = `${role}_resume.${type}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
         toast({
             title: 'Downloading',
-            description: `Fetching ${role} resume...`,
-            variant: 'success',
+            description: `Downloading ${role} resume...`,
+            variant: 'info',
+            duration: 3000,
         });
     };
 
@@ -98,7 +113,7 @@ export default function ResumeDashboard() {
                     Role Based Resumes
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-500">
-                    Manage your role-specific resumes ({resumes.length} active)
+                    View your role-specific resumes ({resumes.length} roles)
                 </p>
             </div>
 
@@ -107,7 +122,38 @@ export default function ResumeDashboard() {
             {/* Scrollable Container */}
             <div className="overflow-y-auto pr-2 mt-6 pb-10 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full">
                 {!hasLoaded ? (
-                    <div className="text-center py-10 text-gray-500">Loading resumes...</div>
+                    <ul role="list" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        {[1, 2, 3].map((i) => (
+                            <Card key={i} className="flex flex-col justify-between p-6! animate-pulse">
+                                <div>
+                                    {/* Header Skeleton */}
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <div className="h-5 w-32 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                            <div className="mt-2 h-3 w-24 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                        </div>
+                                        <div className="h-5 w-5 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                    </div>
+
+                                    {/* URL Bar Skeleton */}
+                                    <div className="mt-5 h-9 w-full bg-gray-200 dark:bg-gray-800 rounded"></div>
+
+                                    {/* Stats Grid Skeleton */}
+                                    <div className="mt-5 grid grid-cols-4 gap-2">
+                                        {[1, 2, 3, 4].map((j) => (
+                                            <div key={j} className="h-14 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Bottom Actions Skeleton */}
+                                <div className="mt-6 flex gap-3">
+                                    <div className="h-9 w-full bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                    <div className="h-9 w-full bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                </div>
+                            </Card>
+                        ))}
+                    </ul>
                 ) : (
                     <ul
                         role="list"
