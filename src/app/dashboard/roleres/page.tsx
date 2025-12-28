@@ -75,14 +75,7 @@ export default function ResumeDashboard() {
                 throw new Error("User not identified");
             }
 
-            let baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-            try {
-                const urlObj = new URL(baseUrl.replace(/\/api$/, ''));
-                baseUrl = urlObj.origin;
-            } catch {
-                baseUrl = 'https://aures.vishok.me'; // fallback
-            }
-            const url = `${baseUrl}/resume/${username}/${role}`;
+            const url = `${nextBase}/resume/${username}/${role}`;
 
             let response;
 
@@ -240,7 +233,7 @@ export default function ResumeDashboard() {
                                             </div>
 
                                             <a
-                                                href={`https://${displayUrl}`}
+                                                href={displayUrl}
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 className="text-gray-400 hover:text-blue-500 transition-colors"
