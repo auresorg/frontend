@@ -51,7 +51,7 @@ async function signUrl(filename: string) {
         signedPath = `/storage/v1${signedPath.startsWith("/") ? signedPath : "/" + signedPath}`;
     }
 
-    return `${FILE_BASE}${signedPath}&download=${filename}`;
+    return `${FILE_BASE}${signedPath}`;
 }
 
 async function fetchResumeData(username: string, role: string) {
@@ -138,10 +138,12 @@ async function fetchResumeData(username: string, role: string) {
 
 export async function GET(
     _req: Request,
-    { params }: { params: { username: string; role: string } }
+    { params }: { params: { username: string; r: string } }
 ) {
     try {
-        const { username, role } = params;
+        const { username, r } = params;
+        const role = r.endsWith(".pdf") ? r.slice(0, -4) : r;
+        
         if (!AllowedRoles.has(role)) return NextResponse.json({ error: "Invalid role" }, { status: 400 });
 
         // 1. Rate Limit (Vercel KV is fast, standard await is fine)
@@ -167,8 +169,6 @@ export async function GET(
             
             // Valid if no data update recorded OR compiled AFTER last data update
             if (!data_updated_at || new Date(compiled_at) >= new Date(data_updated_at)) {
-                console.log(`[PERF] CACHE HIT`);
-                
                 // Sign the URL for security
                 const signedUrl = await signUrl(`${username}-${role}.pdf`);
                 
@@ -177,7 +177,6 @@ export async function GET(
         }
 
         // --- SLOW PATH: CACHE MISS (Generate) ---
-        console.log(`[PERF] CACHE MISS: Generating...`);
         const data = await fetchResumeData(username, role);
         
         if (!data) return NextResponse.json({ error: "User not found" }, { status: 404 });
