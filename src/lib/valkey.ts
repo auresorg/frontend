@@ -1,8 +1,5 @@
-// lib/rateLimit.ts
 import { NextResponse } from "next/server";
-import Redis from "ioredis";
-
-const redis = new Redis(process.env.VALKEY_URL!);
+import { kv } from "@vercel/kv";
 
 type Mode = "ip" | "user" | "global";
 
@@ -26,39 +23,35 @@ export async function rateLimit(
         html = false,
     }: Opts = {}
 ) {
-    let key: string;
+    let key = "rl";
 
     switch (mode) {
         case "user":
             if (!identifier) throw new Error("identifier required for user mode");
-            key = `rl:user:${identifier}`;
+            key += `:user:${identifier}`;
             break;
-
         case "global":
-            key = `rl:global`;
+            key += `:global`;
             break;
-
         default:
-            const ip =
-                req.headers.get("x-forwarded-for") ||
-                req.headers.get("cf-connecting-ip") ||
-                "unknown";
-            key = `rl:ip:${ip}`;
+            const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+            key += `:ip:${ip}`;
     }
 
     if (route) key += `:${route}`;
 
-    const count = await redis.incr(key);
+    const count = await kv.incr(key);
 
     if (count === 1) {
-        await redis.pexpire(key, windowSec * 1000);
+        await kv.expire(key, windowSec);
     }
 
     if (count > limit) {
-        const ttlMs = await redis.pttl(key); // milliseconds
-        const retryAfter = Math.ceil(ttlMs / 1000);
+        const ttl = await kv.ttl(key); // Returns seconds
+        const retryAfter = ttl > 0 ? ttl : windowSec;
 
-        const htmlPage = `
+        if (html) {
+            const htmlPage = `
             <html>
             <head>
             <title>Rate Limited</title>
@@ -116,16 +109,11 @@ export async function rateLimit(
             </script>
             </body>
             </html>
-        `;
+            `;
 
-
-        if (html) {
             return new NextResponse(htmlPage, {
                 status: 429,
-                headers: {
-                    "Content-Type": "text/html",
-                    "Retry-After": retryAfter.toString()
-                }
+                headers: { "Content-Type": "text/html", "Retry-After": String(retryAfter) }
             });
         }
 
@@ -138,11 +126,10 @@ export async function rateLimit(
                 status: 429,
                 headers: {
                     "Content-Type": "application/json",
-                    "Retry-After": retryAfter.toString()
+                    "Retry-After": String(retryAfter)
                 }
             }
         );
-
     }
 
     return null;

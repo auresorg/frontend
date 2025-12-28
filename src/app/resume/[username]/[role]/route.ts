@@ -9,91 +9,71 @@ const RESGEN_TEX_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.az
 
 const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]);
 
-// Define these OUTSIDE the function so they are created only once in memory
+// --- DEBUG TIMING UTILS ---
+const now = () => Date.now();
+const logPerf = (label: string, start: number) => console.log(`[PERF] ${label}: ${now() - start}ms`);
+// --------------------------
+
 const ESCAPE_MAP: Record<string, string> = {
-    '\\': '\\textbackslash',
-    '&': '\\&',
-    '%': '\\%',
-    '$': '\\$',
-    '#': '\\#',
-    '_': '\\_',
-    '{': '\\{',
-    '}': '\\}',
-    '~': '\\textasciitilde',
-    '^': '\\textasciicircum',
-    '\u2013': '-', // En dash
-    '\u2014': '-', // Em dash
-    '\u00A0': ' '  // Non-breaking space
+    '\\': '\\textbackslash', '&': '\\&', '%': '\\%', '$': '\\$', '#': '\\#',
+    '_': '\\_', '{': '\\{', '}': '\\}', '~': '\\textasciitilde', '^': '\\textasciicircum',
+    '\u2013': '-', '\u2014': '-', '\u00A0': ' '
 };
 
-// Compile regex once. Matches all special chars + unicode artifacts
 const ESCAPE_REGEX = /[\\&%$#_{}~^\u2013\u2014\u00A0]/g;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const safe = (v: any): string => {
-    // 1. Fast exit for null/undefined/empty
     if (v == null || v === "") return "";
-
     let s = String(v);
-
-    // 2. Strip ##FORMAT## block (Must happen BEFORE escaping #)
     if (s.startsWith("##")) {
         const end = s.indexOf("##", 2);
-        if (end !== -1) {
-            s = s.substring(end + 2).trim();
-        }
+        if (end !== -1) s = s.substring(end + 2).trim();
     }
-
-    // 3. Single-pass replacement for everything else
-    // If no special chars exist, V8 is smart enough to return original string
     return s.replace(ESCAPE_REGEX, (match) => ESCAPE_MAP[match]);
 };
 
-function fullUrl(p: string) {
-    return `${FILE_BASE}${p.startsWith("/") ? p : `/${p}`}`;
-}
+async function signUrl(filename: string) {
+    const tStart = now();
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
 
-async function file(stored: string, filename: string) {
-    const pdfUrl = fullUrl(stored);
+    // Supabase Admin API to sign URL
+    const signRes = await fetch(`${FILE_BASE}/storage/v1/object/sign/aurespdf/${filename}`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${serviceKey}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ expiresIn: 10 })
+    });
 
-    const pdfRes = await fetch(pdfUrl);
+    if (!signRes.ok) throw new Error("Failed to sign URL");
 
-    if (!pdfRes.ok) {
-        return NextResponse.json(
-            { error: "Failed to load PDF from storage" },
-            { status: 500 }
-        );
+    const data = await signRes.json();
+    logPerf(`signUrl - Remote Sign`, tStart);
+    
+    let signedPath = data.signedURL;
+    if (!signedPath.startsWith("/storage/v1")) {
+        signedPath = `/storage/v1${signedPath.startsWith("/") ? signedPath : "/" + signedPath}`;
     }
 
-    const buffer = Buffer.from(await pdfRes.arrayBuffer());
-
-    return new NextResponse(buffer, {
-        status: 200,
-        headers: {
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `inline; filename="${filename}"`,
-            "Cache-Control": "public, max-age=12"
-        }
-    });
+    return `${FILE_BASE}${signedPath}&download=${filename}`;
 }
 
-/**
- * Shared function to fetch and format user resume data from the database.
- * Used by both PDF generation (GET) and TeX generation (POST).
- */
 async function fetchResumeData(username: string, role: string) {
-    // 1. Fetch User
+    const tStart = now();
+    
     const users = await query<User>(
         `SELECT id, username, email, avatarurl, firstname as "firstName", lastname as "lastName", linkedin, portfolio, leetcode, plan, skills, projectscount, certcount, awardscount, experiencecount FROM users WHERE username = $1 LIMIT 1`,
         [username]
     );
+    logPerf(`fetchResumeData - Query User`, tStart);
+    
     const user = users[0];
     if (!user) return null;
 
-    const fullName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.username;
-    const userId = user.id;
-
-    // 2. Fetch Related Data
+    const tRelated = now();
     const combined = await query<{
         education: Education | null;
         projects: Project[] | null;
@@ -101,116 +81,18 @@ async function fetchResumeData(username: string, role: string) {
         experiences: Experience[] | null;
         awards: Award[] | null;
     }>(
-        `
-        SELECT
-            (
-                SELECT row_to_json(e)
-                FROM (
-                    SELECT id, school, degree, field, start_date AS "startDate", end_date AS "endDate", grade, description
-                    FROM education
-                    WHERE user_id = $1
-                    LIMIT 1
-                ) e
-            ) AS education,
-            (
-                SELECT json_agg(p)
-                FROM (
-                    SELECT id, name, repo, url, tech, description, role, start_date AS "startDate", end_date AS "endDate"
-                    FROM project
-                    WHERE user_id = $1 AND role = $2
-                    ORDER BY start_date DESC
-                ) p
-            ) AS projects,
-            (
-                SELECT json_agg(c)
-                FROM (
-                    SELECT id, title, platform, description, url, completed_on AS "completedOn", role
-                    FROM certification
-                    WHERE user_id = $1 AND role = $2
-                    ORDER BY completed_on DESC
-                ) c
-            ) AS certifications,
-            (
-                SELECT json_agg(e2)
-                FROM (
-                    SELECT id, title, company, start_date AS "startDate", end_date AS "endDate", description, role
-                    FROM experience
-                    WHERE user_id = $1 AND role = $2
-                    ORDER BY start_date DESC
-                ) e2
-            ) AS experiences,
-             (
-                SELECT json_agg(a)
-                FROM (
-                    SELECT id, title, issuer, type, description, date, role
-                    FROM award
-                    WHERE user_id = $1 AND (role = $2 OR role IS NULL)
-                    ORDER BY date DESC
-                ) a
-            ) AS awards
-        `,
-        [userId, role]
+        `SELECT
+            (SELECT row_to_json(e) FROM (SELECT id, school, degree, field, start_date AS "startDate", end_date AS "endDate", grade, description FROM education WHERE user_id = $1 LIMIT 1) e) AS education,
+            (SELECT json_agg(p) FROM (SELECT id, name, repo, url, tech, description, role, start_date AS "startDate", end_date AS "endDate" FROM project WHERE user_id = $1 AND role = $2 ORDER BY start_date DESC) p) AS projects,
+            (SELECT json_agg(c) FROM (SELECT id, title, platform, description, url, completed_on AS "completedOn", role FROM certification WHERE user_id = $1 AND role = $2 ORDER BY completed_on DESC) c) AS certifications,
+            (SELECT json_agg(e2) FROM (SELECT id, title, company, start_date AS "startDate", end_date AS "endDate", description, role FROM experience WHERE user_id = $1 AND role = $2 ORDER BY start_date DESC) e2) AS experiences,
+            (SELECT json_agg(a) FROM (SELECT id, title, issuer, type, description, date, role FROM award WHERE user_id = $1 AND (role = $2 OR role IS NULL) ORDER BY date DESC) a) AS awards`,
+        [user.id, role]
     );
+    logPerf(`fetchResumeData - Query Related Data`, tRelated);
 
-    const educationRows = combined[0].education ? [combined[0].education] : [];
-    const projectRows = combined[0].projects || [];
-    const certRows = combined[0].certifications || [];
-    const expRows = combined[0].experiences || [];
-    const awardRows = combined[0].awards || [];
-
-    const education: Education | undefined = educationRows[0];
-    const projects: Project[] = projectRows;
-    const certifications: Certification[] = certRows;
-    const experiences: Experience[] = expRows;
-    const awards: Award[] = awardRows;
-
-    // 3. Normalize for ResGen
-    const formattedEducation = education
-        ? {
-            name: safe(education.school),
-            location: "",
-            degree: safe(education.degree),
-            course: safe(education.field),
-            from: safe(education.startDate),
-            to: safe(education.endDate),
-            score: safe(education.grade),
-            maxscore: "",
-        }
-        : null;
-
-    const courses = certifications.map((c) => ({
-        title: safe(c.title),
-        provider: safe(c.platform),
-        started_at: safe(c.completedOn),
-        completed_at: safe(c.completedOn),
-        highlights: c.description ? [safe(c.description)] : [],
-    }));
-
-    const formattedProjects = projects.map((p) => (typeof p === "object" ? {
-        title: safe(p.name),
-        url: safe(p.url || "https://github.com/" + p.repo),
-        skills: Array.isArray(p.tech) ? p.tech : [],
-        highlights: p.description ? [safe(p.description)] : [],
-        from_date: safe(p.startDate),
-        to_date: safe(p.endDate),
-    } : p));
-
-    const formattedExperiences = experiences.map((e) => (typeof e === "object" ? {
-        title: safe(e.title),
-        company: safe(e.company),
-        location: "",
-        from_date: safe(e.startDate),
-        to_date: safe(e.endDate),
-        highlights: e.description ? [safe(e.description)] : [],
-    } : e));
-
-    const formattedAwards = awards.map((a) => ({
-        title: safe(a.title),
-        issuer: safe(a.issuer),
-        type: safe(a.type),
-        date: safe(a.date),
-        highlights: a.description ? [safe(a.description)] : [],
-    }));
+    const data = combined[0];
+    const fullName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.username;
 
     const payload = {
         name: fullName,
@@ -220,11 +102,46 @@ async function fetchResumeData(username: string, role: string) {
         portfolio: safe(user.portfolio),
         github: safe(user.username),
         leetcode: safe(user.leetcode),
-        education: formattedEducation,
-        courses,
-        projects: formattedProjects,
-        experiences: formattedExperiences,
-        awards: formattedAwards
+        education: data.education ? {
+            name: safe(data.education.school),
+            location: "",
+            degree: safe(data.education.degree),
+            course: safe(data.education.field),
+            from: safe(data.education.startDate),
+            to: safe(data.education.endDate),
+            score: safe(data.education.grade),
+            maxscore: "",
+        } : null,
+        courses: (data.certifications || []).map(c => ({
+            title: safe(c.title),
+            provider: safe(c.platform),
+            started_at: safe(c.completedOn),
+            completed_at: safe(c.completedOn),
+            highlights: c.description ? [safe(c.description)] : []
+        })),
+        projects: (data.projects || []).map(p => ({
+            title: safe(p.name),
+            url: safe(p.url || "https://github.com/" + p.repo),
+            skills: Array.isArray(p.tech) ? p.tech : [],
+            highlights: p.description ? [safe(p.description)] : [],
+            from_date: safe(p.startDate),
+            to_date: safe(p.endDate)
+        })),
+        experiences: (data.experiences || []).map(e => ({
+            title: safe(e.title),
+            company: safe(e.company),
+            location: "",
+            from_date: safe(e.startDate),
+            to_date: safe(e.endDate),
+            highlights: e.description ? [safe(e.description)] : []
+        })),
+        awards: (data.awards || []).map(a => ({
+            title: safe(a.title),
+            issuer: safe(a.issuer),
+            type: safe(a.type),
+            date: safe(a.date),
+            highlights: a.description ? [safe(a.description)] : []
+        }))
     };
 
     return { user, payload };
@@ -234,73 +151,85 @@ export async function GET(
     _req: Request,
     { params }: { params: { username: string; role: string } }
 ) {
+    const tReq = now();
     try {
+        const { username, role } = params;
+        if (!AllowedRoles.has(role)) return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+
+        // 1. Rate Limit (Vercel KV is fast, standard await is fine)
         const limited = await rateLimit(_req, { mode: "ip", route: "resume", limit: 3, windowSec: 60, html: true });
         if (limited) return limited;
+        logPerf(`GET - Rate Limit Check`, tReq);
 
-        const { username, role } = params;
-
-        if (!AllowedRoles.has(role)) {
-            return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-        }
-
-        // Use shared data fetcher
-        const data = await fetchResumeData(username, role);
-        if (!data) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-        const { user, payload } = data;
-
-        // CACHE CHECK (PDF Only)
-        const cache = await query<{
+        // 2. Check Cache Index (Fast O(1) lookup)
+        const tCacheCheck = now();
+        const cacheResult = await query<{
             url: string;
             compiled_at: string;
             data_updated_at: string | null;
         }>(
-            `SELECT url, compiled_at, data_updated_at FROM resumes WHERE user_id = $1 AND role = $2 LIMIT 1`,
-            [user.id, role]
+            `SELECT url, compiled_at, data_updated_at 
+             FROM resumes 
+             WHERE username = $1 AND role = $2 
+             LIMIT 1`,
+            [username, role]
         );
+        logPerf(`GET - Direct Cache Index Lookup`, tCacheCheck);
 
-        if (cache.length > 0) {
-            const { url, compiled_at, data_updated_at } = cache[0];
+        // --- FAST PATH: CACHE HIT ---
+        if (cacheResult.length > 0) {
+            const { compiled_at, data_updated_at } = cacheResult[0];
+            
+            // Valid if no data update recorded OR compiled AFTER last data update
             if (!data_updated_at || new Date(compiled_at) >= new Date(data_updated_at)) {
-                return file(url, `${username}-${role}.pdf`);
+                console.log(`[PERF] CACHE HIT`);
+                
+                // Sign the URL for security
+                const signedUrl = await signUrl(`${username}-${role}.pdf`);
+                logPerf(`GET - TOTAL (Cache Redirect)`, tReq);
+                
+                return NextResponse.redirect(signedUrl, { status: 307 });
             }
         }
 
-        // GENERATE PDF
+        // --- SLOW PATH: CACHE MISS (Generate) ---
+        console.log(`[PERF] CACHE MISS: Generating...`);
+        const tFetchData = now();
+        const data = await fetchResumeData(username, role);
+        logPerf(`GET - Full Data Fetch`, tFetchData);
+        
+        if (!data) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+        // Generate PDF on Azure
+        const tGen = now();
         const gen = await fetch(RESGEN_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(data.payload),
         });
+        logPerf(`GET - Azure Gen`, tGen);
 
         if (!gen.ok) {
-            let errBody = "";
-            try { errBody = await gen.text(); } catch { }
-
-            return NextResponse.json(
-                {
-                    error: "resgen failed",
-                    status: gen.status,
-                    statusText: gen.statusText,
-                    body: errBody,
-                    debugPayload: payload,
-                },
-                { status: 500 },
-            );
+            const errBody = await gen.text();
+            return NextResponse.json({ error: "resgen failed", body: errBody }, { status: 500 });
         }
 
-        const pdfArrayBuffer = await gen.arrayBuffer();
-        const pdfBuffer = Buffer.from(pdfArrayBuffer);
+        const pdfBuffer = Buffer.from(await gen.arrayBuffer());
         const filename = `${username}-${role}.pdf`;
         const storedPath = `/storage/v1/object/public/aurespdf/${filename}`;
 
+        // Upsert logic
+        const tDBUpdate = now();
         await query(
-            `UPDATE resumes 
-            SET url = $1, compiled_at = NOW() 
-            WHERE username = $2 AND role = $3`,
-            [storedPath, username, role]
+            `INSERT INTO resumes (user_id, username, role, url, compiled_at, created_at, updated_at, projects, certificates, awards, experience)
+             VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW(), 0, 0, 0, 0)
+             ON CONFLICT (username, role) 
+             DO UPDATE SET url = $4, compiled_at = NOW(), updated_at = NOW()`,
+            [data.user.id, username, role, storedPath]
         );
+        logPerf(`GET - DB Upsert`, tDBUpdate);
+
+        logPerf(`GET - TOTAL (Fresh Gen)`, tReq);
 
         return new NextResponse(pdfBuffer, {
             status: 200,
@@ -314,13 +243,8 @@ export async function GET(
     } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const err = error as any;
-
         return NextResponse.json(
-            {
-                error: "unhandled error in resume GET",
-                message: err?.message ?? String(err),
-                stack: err?.stack ?? null,
-            },
+            { error: "Internal Error", message: err?.message },
             { status: 500 },
         );
     }
@@ -331,20 +255,15 @@ export async function POST(
     { params }: { params: { username: string; role: string } }
 ) {
     try {
-        
+        const tStart = now();
         const limited = await rateLimit(req, { mode: "ip", route: "tex-gen", limit: 1, windowSec: 30 });
         if (limited) return limited;
 
-        const authHeader = req.headers.get("Authorization");
-        if (!authHeader) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        if (!req.headers.get("Authorization")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const { username, role } = params;
-
-        if (!AllowedRoles.has(role)) {
-            return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-        }
+        
+        if (!AllowedRoles.has(role)) return NextResponse.json({ error: "Invalid role" }, { status: 400 });
 
         const data = await fetchResumeData(username, role);
         if (!data) return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -354,18 +273,11 @@ export async function POST(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data.payload),
         });
+        logPerf(`POST - TeX Gen Fetch`, tStart);
 
-        if (!gen.ok) {
-            const errBody = await gen.text();
-            return NextResponse.json(
-                { error: "Tex generation failed", details: errBody },
-                { status: 500 }
-            );
-        }
+        if (!gen.ok) return NextResponse.json({ error: "Tex gen failed" }, { status: 500 });
 
-        const texContent = await gen.text();
-
-        return new NextResponse(texContent, {
+        return new NextResponse(await gen.text(), {
             status: 200,
             headers: {
                 "Content-Type": "application/x-tex",
@@ -373,12 +285,7 @@ export async function POST(
             }
         });
 
-    } catch (error) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const err = error as any;
-        return NextResponse.json(
-            { error: "Server error", message: err?.message },
-            { status: 500 }
-        );
+    } catch {
+        return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
