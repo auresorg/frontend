@@ -2,35 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { rateLimit } from "@/lib/valkey";
 
-interface Project {
-    name: string;
-    desc: string;
-    url?: string;
-    tech?: string[];
-}
-
-interface Experience {
-    description?: string;
-    [key: string]: unknown; 
-}
-
-interface Award {
-    description?: string;
+interface UserData {
+    data: Record<string, unknown>;
     [key: string]: unknown;
 }
 
-interface UserData {
-    username: string;
-    avatar: string; 
-    email?: string | null;
-    projects?: Project[];
-    experience?: Experience[];
-    awards?: Award[];
-    skills?: string[] | string | null;
-}
-
-// Helper to clean strings
-const clean = (text: string | undefined) => text ? text.replace(/##\w+##/g, '').trim() : "";
+const SQL_CLEAN = (col: string) => `REGEXP_REPLACE(${col}, '##\\w+##', '', 'g')`;
 
 export async function GET(
     request: NextRequest,
@@ -39,25 +16,21 @@ export async function GET(
     const limited = await rateLimit(request, { 
         mode: "ip", 
         route: "public_api", 
-        limit: 2, 
-        windowSec: 30 
+        limit: 10, 
+        windowSec: 60 
     });
 
     if (limited) return limited;
     
     const { username } = params;
-    const searchParams = request.nextUrl.searchParams;
-    const selectParam = searchParams.get('select') || request.headers.get('x-select');
+    const selectParam = request.nextUrl.searchParams.get('select') || request.headers.get('x-select');
 
     if (!selectParam) {
-        return NextResponse.json({ 
-            error: "Missing 'select' parameter. Please specify fields (e.g., ?select=projects,skills)." 
-        }, { status: 400 });
+        return NextResponse.json({ error: "Missing 'select' parameter" }, { status: 400 });
     }
 
     const requestedFields = new Set(selectParam.split(',').map(s => s.trim()));
     
-    // 1. Build Query
     const jsonParts = [
         "'username', u.username",
         "'avatar', u.avatarurl"
@@ -71,7 +44,12 @@ export async function GET(
         jsonParts.push(`
             'projects', CASE WHEN u.showprojects IS TRUE THEN (
                 SELECT COALESCE(json_agg(
-                    json_build_object('name', p.name, 'desc', p.description, 'url', p.url, 'tech', p.tech)
+                    json_build_object(
+                        'name', p.name, 
+                        'desc', ${SQL_CLEAN('p.description')}, 
+                        'url', p.url, 
+                        'tech', p.tech
+                    )
                 ), '[]'::json) FROM project p WHERE p.user_id = u.id
             ) ELSE NULL END
         `);
@@ -80,7 +58,15 @@ export async function GET(
     if (requestedFields.has('experience')) {
         jsonParts.push(`
             'experience', CASE WHEN u.showexperience IS TRUE THEN (
-                SELECT COALESCE(json_agg(row_to_json(e)), '[]'::json) 
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'title', e.title,
+                        'company', e.company,
+                        'description', ${SQL_CLEAN('e.description')},
+                        'startDate', e.start_date,
+                        'endDate', e.end_date
+                    )
+                ), '[]'::json) 
                 FROM experience e WHERE e.user_id = u.id
             ) ELSE NULL END
         `);
@@ -89,7 +75,14 @@ export async function GET(
     if (requestedFields.has('awards')) {
         jsonParts.push(`
             'awards', CASE WHEN u.showawards IS TRUE THEN (
-                SELECT COALESCE(json_agg(row_to_json(a)), '[]'::json) 
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'title', a.title,
+                        'issuer', a.issuer,
+                        'description', ${SQL_CLEAN('a.description')},
+                        'date', a.date
+                    )
+                ), '[]'::json) 
                 FROM award a WHERE a.user_id = u.id
             ) ELSE NULL END
         `);
@@ -99,57 +92,24 @@ export async function GET(
         jsonParts.push("'skills', u.skills");
     }
 
-    const sql = `
-        SELECT json_build_object(${jsonParts.join(',')}) AS data
-        FROM users u
-        WHERE u.username = $1
-    `;
+    const sql = `SELECT json_build_object(${jsonParts.join(',')}) AS data FROM users u WHERE u.username = $1 LIMIT 1`;
 
     try {
-        const result = await query<{ data: UserData }>(sql, [username]);
-        const rawData = result[0]?.data;
+        const result = await query<UserData>(sql, [username]);
+        const responseData = result[0]?.data;
 
-        if (!rawData) {
+        if (!responseData) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
-        const responseData: Record<string, unknown> = {
-            username: rawData.username,
-            avatar: rawData.avatar,
-        };
-
-        if (rawData.email) responseData.email = rawData.email;
-        if (rawData.skills) responseData.skills = rawData.skills;
-
-        if (rawData.projects) {
-            responseData.projects = rawData.projects.map((p: Project) => ({
-                ...p,
-                desc: clean(p.desc)
-            }));
-        }
-
-        if (rawData.experience) {
-            responseData.experience = rawData.experience.map((e: Experience) => ({
-                ...e,
-                description: clean(e.description)
-            }));
-        }
-
-        if (rawData.awards) {
-            responseData.awards = rawData.awards.map((a: Award) => ({
-                ...a,
-                description: clean(a.description)
-            }));
         }
 
         return NextResponse.json(responseData, {
             status: 200,
             headers: {
-                "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30"
+                "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30",
+                "Content-Type": "application/json"
             }
         });
-    } catch (error) {
-        console.error("Public API Error:", error);
+    } catch {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
