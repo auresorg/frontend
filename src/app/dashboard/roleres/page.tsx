@@ -19,7 +19,7 @@ import { Button } from '@/components/Button';
 import { toast } from '@/lib/useToast';
 import { useResumeStore } from '@/store/resumeStore';
 import { useUserStore } from '@/store/userStore'; // Import UserStore
-import { getWithToken } from '@/lib/utils';
+import { getWithToken, nextBase } from '@/lib/utils';
 import { usePresetDialog } from '@/lib/dialogs';
 
 export default function ResumeDashboard() {
@@ -51,18 +51,8 @@ export default function ResumeDashboard() {
         fetchResumes();
     }, [isClient, hasLoaded, setResumes, setHasLoaded]);
 
-    // Get domain from env var
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-    let domain = '';
-    try {
-        const urlObj = new URL(apiBaseUrl);
-        domain = urlObj.hostname+':3000'
-    } catch {
-        domain = 'aures.vishok.me'; // fallback
-    }
-
     const copyLink = (role: string) => {
-        const url = `${domain}/resume/${user?.username}/${role}`;
+        const url = `${nextBase}/resume/${user?.username}/${role}`;
         navigator.clipboard.writeText(`https://${url}`);
         toast({
             title: 'Copied',
@@ -130,7 +120,7 @@ export default function ResumeDashboard() {
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.download = `${username}-${role}.${type}`; // e.g., mvishok-frontend.tex
+            link.download = `${username}-${role}.${type}`;
             document.body.appendChild(link);
             link.click();
             
@@ -222,7 +212,7 @@ export default function ResumeDashboard() {
                         {resumes.map((item) => {
                             const displayName = `${item.role.charAt(0).toUpperCase() + item.role.slice(1)} Developer`;
                             // Dynamic username in display URL
-                            const displayUrl = `${domain}/resume/${user?.username}/${item.role}`;
+                            const displayUrl = `${nextBase}/resume/${user?.username}/${item.role}`;
 
                             const uiStats = [
                                 { label: 'Projects', value: item.stats.projects, icon: RiStackLine },
