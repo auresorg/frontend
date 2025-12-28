@@ -52,7 +52,7 @@ export default function ResumeDashboard() {
     }, [isClient, hasLoaded, setResumes, setHasLoaded]);
 
     const copyLink = (role: string) => {
-        const url = `${nextBase}/resume/${user?.username}/${role}`;
+        const url = `${nextBase}/r/${user?.username}/${role}`;
         navigator.clipboard.writeText(`https://${url}`);
         toast({
             title: 'Copied',
@@ -75,7 +75,7 @@ export default function ResumeDashboard() {
                 throw new Error("User not identified");
             }
 
-            const url = `${nextBase}/resume/${username}/${role}`;
+            const url = `${nextBase}/r/${username}/${role}`;
 
             let response;
 
@@ -205,7 +205,7 @@ export default function ResumeDashboard() {
                         {resumes.map((item) => {
                             const displayName = `${item.role.charAt(0).toUpperCase() + item.role.slice(1)} Developer`;
                             // Dynamic username in display URL
-                            const displayUrl = `${nextBase}/resume/${user?.username}/${item.role}`;
+                            const displayUrl = `${nextBase}/r/${user?.username}/${item.role}`;
 
                             const uiStats = [
                                 { label: 'Projects', value: item.stats.projects, icon: RiStackLine },

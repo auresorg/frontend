@@ -9,11 +9,6 @@ const RESGEN_TEX_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.az
 
 const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]);
 
-// --- DEBUG TIMING UTILS ---
-const now = () => Date.now();
-const logPerf = (label: string, start: number) => console.log(`[PERF] ${label}: ${now() - start}ms`);
-// --------------------------
-
 const ESCAPE_MAP: Record<string, string> = {
     '\\': '\\textbackslash', '&': '\\&', '%': '\\%', '$': '\\$', '#': '\\#',
     '_': '\\_', '{': '\\{', '}': '\\}', '~': '\\textasciitilde', '^': '\\textasciicircum',
@@ -34,7 +29,6 @@ const safe = (v: any): string => {
 };
 
 async function signUrl(filename: string) {
-    const tStart = now();
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!serviceKey) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
 
@@ -51,7 +45,6 @@ async function signUrl(filename: string) {
     if (!signRes.ok) throw new Error("Failed to sign URL");
 
     const data = await signRes.json();
-    logPerf(`signUrl - Remote Sign`, tStart);
     
     let signedPath = data.signedURL;
     if (!signedPath.startsWith("/storage/v1")) {
@@ -62,18 +55,15 @@ async function signUrl(filename: string) {
 }
 
 async function fetchResumeData(username: string, role: string) {
-    const tStart = now();
-    
+
     const users = await query<User>(
         `SELECT id, username, email, avatarurl, firstname as "firstName", lastname as "lastName", linkedin, portfolio, leetcode, plan, skills, projectscount, certcount, awardscount, experiencecount FROM users WHERE username = $1 LIMIT 1`,
         [username]
     );
-    logPerf(`fetchResumeData - Query User`, tStart);
     
     const user = users[0];
     if (!user) return null;
 
-    const tRelated = now();
     const combined = await query<{
         education: Education | null;
         projects: Project[] | null;
@@ -89,7 +79,6 @@ async function fetchResumeData(username: string, role: string) {
             (SELECT json_agg(a) FROM (SELECT id, title, issuer, type, description, date, role FROM award WHERE user_id = $1 AND (role = $2 OR role IS NULL) ORDER BY date DESC) a) AS awards`,
         [user.id, role]
     );
-    logPerf(`fetchResumeData - Query Related Data`, tRelated);
 
     const data = combined[0];
     const fullName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.username;
@@ -151,7 +140,6 @@ export async function GET(
     _req: Request,
     { params }: { params: { username: string; role: string } }
 ) {
-    const tReq = now();
     try {
         const { username, role } = params;
         if (!AllowedRoles.has(role)) return NextResponse.json({ error: "Invalid role" }, { status: 400 });
@@ -159,10 +147,8 @@ export async function GET(
         // 1. Rate Limit (Vercel KV is fast, standard await is fine)
         const limited = await rateLimit(_req, { mode: "ip", route: "resume", limit: 3, windowSec: 60, html: true });
         if (limited) return limited;
-        logPerf(`GET - Rate Limit Check`, tReq);
 
         // 2. Check Cache Index (Fast O(1) lookup)
-        const tCacheCheck = now();
         const cacheResult = await query<{
             url: string;
             compiled_at: string;
@@ -174,7 +160,6 @@ export async function GET(
              LIMIT 1`,
             [username, role]
         );
-        logPerf(`GET - Direct Cache Index Lookup`, tCacheCheck);
 
         // --- FAST PATH: CACHE HIT ---
         if (cacheResult.length > 0) {
@@ -186,7 +171,6 @@ export async function GET(
                 
                 // Sign the URL for security
                 const signedUrl = await signUrl(`${username}-${role}.pdf`);
-                logPerf(`GET - TOTAL (Cache Redirect)`, tReq);
                 
                 return NextResponse.redirect(signedUrl, { status: 307 });
             }
@@ -194,20 +178,16 @@ export async function GET(
 
         // --- SLOW PATH: CACHE MISS (Generate) ---
         console.log(`[PERF] CACHE MISS: Generating...`);
-        const tFetchData = now();
         const data = await fetchResumeData(username, role);
-        logPerf(`GET - Full Data Fetch`, tFetchData);
         
         if (!data) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         // Generate PDF on Azure
-        const tGen = now();
         const gen = await fetch(RESGEN_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data.payload),
         });
-        logPerf(`GET - Azure Gen`, tGen);
 
         if (!gen.ok) {
             const errBody = await gen.text();
@@ -219,7 +199,6 @@ export async function GET(
         const storedPath = `/storage/v1/object/public/aurespdf/${filename}`;
 
         // Upsert logic
-        const tDBUpdate = now();
         await query(
             `INSERT INTO resumes (user_id, username, role, url, compiled_at, created_at, updated_at, projects, certificates, awards, experience)
              VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW(), 0, 0, 0, 0)
@@ -227,9 +206,6 @@ export async function GET(
              DO UPDATE SET url = $4, compiled_at = NOW(), updated_at = NOW()`,
             [data.user.id, username, role, storedPath]
         );
-        logPerf(`GET - DB Upsert`, tDBUpdate);
-
-        logPerf(`GET - TOTAL (Fresh Gen)`, tReq);
 
         return new NextResponse(pdfBuffer, {
             status: 200,
@@ -255,7 +231,6 @@ export async function POST(
     { params }: { params: { username: string; role: string } }
 ) {
     try {
-        const tStart = now();
         const limited = await rateLimit(req, { mode: "ip", route: "tex-gen", limit: 1, windowSec: 30 });
         if (limited) return limited;
 
@@ -273,7 +248,6 @@ export async function POST(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data.payload),
         });
-        logPerf(`POST - TeX Gen Fetch`, tStart);
 
         if (!gen.ok) return NextResponse.json({ error: "Tex gen failed" }, { status: 500 });
 
