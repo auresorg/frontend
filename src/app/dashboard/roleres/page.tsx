@@ -20,11 +20,13 @@ import { toast } from '@/lib/useToast';
 import { useResumeStore } from '@/store/resumeStore';
 import { useUserStore } from '@/store/userStore'; // Import UserStore
 import { getWithToken } from '@/lib/utils';
+import { usePresetDialog } from '@/lib/dialogs';
 
 export default function ResumeDashboard() {
     const { resumes, hasLoaded, setResumes, setHasLoaded } = useResumeStore();
     const { user } = useUserStore(); // Get current user
     const [isClient, setIsClient] = useState(false);
+    const presetDialog = usePresetDialog();
 
     useEffect(() => {
         setIsClient(true);
@@ -54,7 +56,7 @@ export default function ResumeDashboard() {
     let domain = '';
     try {
         const urlObj = new URL(apiBaseUrl);
-        domain = urlObj.hostname;
+        domain = urlObj.hostname+':3000'
     } catch {
         domain = 'aures.vishok.me'; // fallback
     }
@@ -69,28 +71,86 @@ export default function ResumeDashboard() {
         });
     };
 
-    const handleDownload = (role: string, type: 'pdf' | 'tex') => {
-        //download link
-        console.log(type);
-        let url;
-        if (type === 'pdf') {
-            url = `http://${domain}/resume/${user?.username}/${role}`;
-        }
-        
-        //initiate download of the file without opening in new tab or navigating
-        const link = document.createElement('a');
-        link.href = url!;
-        link.download = `${role}_resume.${type}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
+    const handleDownload = async (role: string, type: 'pdf' | 'tex') => {
         toast({
             title: 'Downloading',
-            description: `Downloading ${role} resume...`,
+            description: `Fetching ${role} resume...`,
             variant: 'info',
-            duration: 3000,
+            duration: 2000,
         });
+
+        try {
+            const username = user?.username;
+            if (!username) {
+                throw new Error("User not identified");
+            }
+
+            let baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+            try {
+                const urlObj = new URL(baseUrl.replace(/\/api$/, ''));
+                baseUrl = urlObj.origin;
+            } catch {
+                baseUrl = 'https://aures.vishok.me'; // fallback
+            }
+            const url = `${baseUrl}/resume/${username}/${role}`;
+
+            let response;
+
+            if (type === 'pdf') {
+                response = await fetch(url, { method: 'GET' });
+            } else {
+                const token = localStorage.getItem('token');
+                
+                response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`, // Pass the JWT
+                        'Content-Type': 'application/json'
+                    },
+                });
+
+                //if rate limited
+                if (response.status === 429) {
+                    toast({
+                        title: 'Rate Limited',
+                        description: 'Please wait before requesting the source again.',
+                        variant: 'warning',
+                    });
+                    return;
+                }
+            }
+
+            if (!response.ok) {
+                presetDialog('unexpectedError');
+                return;
+            }
+
+            const blob = await response.blob();
+            
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `${username}-${role}.${type}`; // e.g., mvishok-frontend.tex
+            document.body.appendChild(link);
+            link.click();
+            
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+
+            toast({
+                title: 'Success',
+                description: `${type.toUpperCase()} downloaded successfully`,
+                variant: 'success',
+            });
+
+        } catch (error) {
+            console.error("Download failed:", error);
+            toast({
+                title: 'Error',
+                description: 'Failed to download file. Please try again.',
+                variant: 'error',
+            });
+        }
     };
 
     const formatDate = (dateStr: string | null) => {

@@ -5,6 +5,8 @@ import { rateLimit } from "@/lib/valkey";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
 const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
+const RESGEN_TEX_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/tex";
+
 const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]);
 
 // Define these OUTSIDE the function so they are created only once in memory
@@ -75,58 +77,31 @@ async function file(stored: string, filename: string) {
     });
 }
 
+/**
+ * Shared function to fetch and format user resume data from the database.
+ * Used by both PDF generation (GET) and TeX generation (POST).
+ */
+async function fetchResumeData(username: string, role: string) {
+    // 1. Fetch User
+    const users = await query<User>(
+        `SELECT id, username, email, avatarurl, firstname as "firstName", lastname as "lastName", linkedin, portfolio, leetcode, plan, skills, projectscount, certcount, awardscount, experiencecount FROM users WHERE username = $1 LIMIT 1`,
+        [username]
+    );
+    const user = users[0];
+    if (!user) return null;
 
-export async function GET(
-    _req: Request,
-    { params }: { params: { username: string; role: string } }
-) {
-    try {
-        const limited = await rateLimit(_req, { mode: "ip", route: "resume", limit: 3, windowSec: 60, html: true });
-        if (limited) return limited;
+    const fullName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.username;
+    const userId = user.id;
 
-        const { username, role } = params;
-
-        if (!AllowedRoles.has(role)) {
-            return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-        }
-
-        const users = await query<User>(
-            `SELECT id, username, email, avatarurl, firstname as "firstName", lastname as "lastName", linkedin, portfolio, leetcode, plan, skills, projectscount, certcount, awardscount, experiencecount FROM users WHERE username = $1 LIMIT 1`,
-            [username]
-        );
-        const user = users[0];
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-        const fullName = (user.firstName && user.lastName) ? `${user.firstName} ${user.lastName}` : user.username;
-
-        const userId = user.id;
-
-        // 2) CACHE
-        const cache = await query<{
-            url: string;
-            compiled_at: string;
-            data_updated_at: string | null;
-        }>(
-            ` SELECT url, compiled_at, data_updated_at FROM resumes WHERE user_id = $1 AND role = $2 LIMIT 1`,
-            [userId, role]
-        );
-
-        if (cache.length > 0) {
-            const { url, compiled_at, data_updated_at } = cache[0];
-            if (!data_updated_at || new Date(compiled_at) >= new Date(data_updated_at)) {
-                return file(url, `${username}-${role}.pdf`);
-            }
-        }
-
-        // 3) RELATED DATA (typed to your existing types)
-        const combined = await query<{
-            education: Education | null;
-            projects: Project[] | null;
-            certifications: Certification[] | null;
-            experiences: Experience[] | null;
-            awards: Award[] | null;
-        }>(
-            `
+    // 2. Fetch Related Data
+    const combined = await query<{
+        education: Education | null;
+        projects: Project[] | null;
+        certifications: Certification[] | null;
+        experiences: Experience[] | null;
+        awards: Award[] | null;
+    }>(
+        `
         SELECT
             (
                 SELECT row_to_json(e)
@@ -174,86 +149,125 @@ export async function GET(
                 ) a
             ) AS awards
         `,
-            [userId, role]
+        [userId, role]
+    );
+
+    const educationRows = combined[0].education ? [combined[0].education] : [];
+    const projectRows = combined[0].projects || [];
+    const certRows = combined[0].certifications || [];
+    const expRows = combined[0].experiences || [];
+    const awardRows = combined[0].awards || [];
+
+    const education: Education | undefined = educationRows[0];
+    const projects: Project[] = projectRows;
+    const certifications: Certification[] = certRows;
+    const experiences: Experience[] = expRows;
+    const awards: Award[] = awardRows;
+
+    // 3. Normalize for ResGen
+    const formattedEducation = education
+        ? {
+            name: safe(education.school),
+            location: "",
+            degree: safe(education.degree),
+            course: safe(education.field),
+            from: safe(education.startDate),
+            to: safe(education.endDate),
+            score: safe(education.grade),
+            maxscore: "",
+        }
+        : null;
+
+    const courses = certifications.map((c) => ({
+        title: safe(c.title),
+        provider: safe(c.platform),
+        started_at: safe(c.completedOn),
+        completed_at: safe(c.completedOn),
+        highlights: c.description ? [safe(c.description)] : [],
+    }));
+
+    const formattedProjects = projects.map((p) => (typeof p === "object" ? {
+        title: safe(p.name),
+        url: safe(p.url || "https://github.com/" + p.repo),
+        skills: Array.isArray(p.tech) ? p.tech : [],
+        highlights: p.description ? [safe(p.description)] : [],
+        from_date: safe(p.startDate),
+        to_date: safe(p.endDate),
+    } : p));
+
+    const formattedExperiences = experiences.map((e) => (typeof e === "object" ? {
+        title: safe(e.title),
+        company: safe(e.company),
+        location: "",
+        from_date: safe(e.startDate),
+        to_date: safe(e.endDate),
+        highlights: e.description ? [safe(e.description)] : [],
+    } : e));
+
+    const formattedAwards = awards.map((a) => ({
+        title: safe(a.title),
+        issuer: safe(a.issuer),
+        type: safe(a.type),
+        date: safe(a.date),
+        highlights: a.description ? [safe(a.description)] : [],
+    }));
+
+    const payload = {
+        name: fullName,
+        role,
+        email: safe(user.email),
+        linkedin: safe(user.linkedin),
+        portfolio: safe(user.portfolio),
+        github: safe(user.username),
+        leetcode: safe(user.leetcode),
+        education: formattedEducation,
+        courses,
+        projects: formattedProjects,
+        experiences: formattedExperiences,
+        awards: formattedAwards
+    };
+
+    return { user, payload };
+}
+
+export async function GET(
+    _req: Request,
+    { params }: { params: { username: string; role: string } }
+) {
+    try {
+        const limited = await rateLimit(_req, { mode: "ip", route: "resume", limit: 3, windowSec: 60, html: true });
+        if (limited) return limited;
+
+        const { username, role } = params;
+
+        if (!AllowedRoles.has(role)) {
+            return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+        }
+
+        // Use shared data fetcher
+        const data = await fetchResumeData(username, role);
+        if (!data) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+        const { user, payload } = data;
+
+        // CACHE CHECK (PDF Only)
+        const cache = await query<{
+            url: string;
+            compiled_at: string;
+            data_updated_at: string | null;
+        }>(
+            `SELECT url, compiled_at, data_updated_at FROM resumes WHERE user_id = $1 AND role = $2 LIMIT 1`,
+            [user.id, role]
         );
 
-        const educationRows = combined[0].education ? [combined[0].education] : [];
-        const projectRows = combined[0].projects || [];
-        const certRows = combined[0].certifications || [];
-        const expRows = combined[0].experiences || [];
-        const awardRows = combined[0].awards || [];
-
-        const education: Education | undefined = educationRows[0];
-
-        const projects: Project[] = projectRows;
-        const certifications: Certification[] = certRows;
-        const experiences: Experience[] = expRows;
-        const awards: Award[] = awardRows
-
-        // 4) NORMALIZE FOR RESGEN (arrays always exist; strings sanitized)
-        const formattedEducation = education
-            ? {
-                name: safe(education.school),
-                location: "",
-                degree: safe(education.degree),
-                course: safe(education.field),
-                from: safe(education.startDate),
-                to: safe(education.endDate),
-                score: safe(education.grade),
-                maxscore: "",
+        if (cache.length > 0) {
+            const { url, compiled_at, data_updated_at } = cache[0];
+            if (!data_updated_at || new Date(compiled_at) >= new Date(data_updated_at)) {
+                return file(url, `${username}-${role}.pdf`);
             }
-            : null;
+        }
 
-        const courses = certifications.map((c) => ({
-            title: safe(c.title),
-            provider: safe(c.platform),
-            started_at: safe(c.completedOn),
-            completed_at: safe(c.completedOn),
-            highlights: c.description ? [safe(c.description)] : [],
-        }));
-
-        const formattedProjects = projects.map((p) => (typeof p === "object" ? {
-            title: safe(p.name),
-            url: safe(p.url || "https://github.com/"+p.repo),
-            skills: Array.isArray(p.tech) ? p.tech : [],
-            highlights: p.description ? [safe(p.description)] : [],
-            from_date: safe(p.startDate),
-            to_date: safe(p.endDate),
-        } : p));
-
-        const formattedExperiences = experiences.map((e) => (typeof e === "object" ? {
-            title: safe(e.title),
-            company: safe(e.company),
-            location: "",
-            from_date: safe(e.startDate),
-            to_date: safe(e.endDate),
-            highlights: e.description ? [safe(e.description)] : [],
-        } : e));
-
-        const formattedAwards = awards.map((a) => ({
-            title: safe(a.title),
-            issuer: safe(a.issuer),
-            type: safe(a.type), // e.g., "First Prize", "Participation"
-            date: safe(a.date),
-            highlights: a.description ? [safe(a.description)] : [],
-        }));
-
-        const payload = {
-            name: fullName,
-            role,
-            email: safe(user.email),
-            linkedin: safe(user.linkedin),
-            portfolio: safe(user.portfolio),
-            github: safe(user.username),
-            leetcode: safe(user.leetcode),
-            education: formattedEducation,
-            courses,
-            projects: formattedProjects,
-            experiences: formattedExperiences,
-            awards: formattedAwards
-        };
-
-        // 5) CALL RESGEN
+        // GENERATE PDF
         const gen = await fetch(RESGEN_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -296,6 +310,7 @@ export async function GET(
                 "Cache-Control": "public, max-age=12"
             }
         });
+
     } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const err = error as any;
@@ -307,6 +322,63 @@ export async function GET(
                 stack: err?.stack ?? null,
             },
             { status: 500 },
+        );
+    }
+}
+
+export async function POST(
+    req: Request,
+    { params }: { params: { username: string; role: string } }
+) {
+    try {
+        
+        const limited = await rateLimit(req, { mode: "ip", route: "tex-gen", limit: 1, windowSec: 30 });
+        if (limited) return limited;
+
+        const authHeader = req.headers.get("Authorization");
+        if (!authHeader) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { username, role } = params;
+
+        if (!AllowedRoles.has(role)) {
+            return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+        }
+
+        const data = await fetchResumeData(username, role);
+        if (!data) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+        const gen = await fetch(RESGEN_TEX_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data.payload),
+        });
+
+        if (!gen.ok) {
+            const errBody = await gen.text();
+            return NextResponse.json(
+                { error: "Tex generation failed", details: errBody },
+                { status: 500 }
+            );
+        }
+
+        const texContent = await gen.text();
+
+        return new NextResponse(texContent, {
+            status: 200,
+            headers: {
+                "Content-Type": "application/x-tex",
+                "Content-Disposition": `attachment; filename="${username}-${role}.tex"`,
+            }
+        });
+
+    } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err = error as any;
+        return NextResponse.json(
+            { error: "Server error", message: err?.message },
+            { status: 500 }
         );
     }
 }
