@@ -226,16 +226,17 @@ export async function GET(
 }
 
 export async function POST(
-    req: Request,
-    { params }: { params: { username: string; role: string } }
+    req: Request
 ) {
     try {
-        const limited = await rateLimit(req, { mode: "ip", route: "tex-gen", limit: 1, windowSec: 30 });
+        const limited = await rateLimit(req, { mode: "ip", route: "tex-gen", limit: 1, windowSec: 15 });
         if (limited) return limited;
 
         if (!req.headers.get("Authorization")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const { username, role } = params;
+        const { username, role } = await req.json();
+
+        if (!username || !role) return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
         
         if (!AllowedRoles.has(role)) return NextResponse.json({ error: "Invalid role" }, { status: 400 });
 

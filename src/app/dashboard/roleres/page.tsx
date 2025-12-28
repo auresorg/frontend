@@ -86,6 +86,7 @@ export default function ResumeDashboard() {
                 
                 response = await fetch(url, {
                     method: 'POST',
+                    body: JSON.stringify({ username: username, role: role }),
                     headers: {
                         'Authorization': `Bearer ${token}`, // Pass the JWT
                         'Content-Type': 'application/json'
