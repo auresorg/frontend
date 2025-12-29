@@ -4,7 +4,7 @@ import type { User, Project, Education, Certification, Experience, Award } from 
 import { rateLimit } from "@/lib/valkey";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
-const RESGEN_URL = "http://localhost:7071/api/resume";
+const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
 const RESGEN_TEX_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/tex";
 
 const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]);
