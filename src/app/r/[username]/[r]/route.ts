@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import type { User, Project, Education, Certification, Experience, Award } from "@/lib/types";
 import { rateLimit } from "@/lib/valkey";
+import { waitUntil } from '@vercel/functions';
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
 const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
@@ -45,7 +46,7 @@ async function signUrl(filename: string) {
     if (!signRes.ok) throw new Error("Failed to sign URL");
 
     const data = await signRes.json();
-    
+
     let signedPath = data.signedURL;
     if (!signedPath.startsWith("/storage/v1")) {
         signedPath = `/storage/v1${signedPath.startsWith("/") ? signedPath : "/" + signedPath}`;
@@ -55,12 +56,11 @@ async function signUrl(filename: string) {
 }
 
 async function fetchResumeData(username: string, role: string) {
-
     const users = await query<User>(
         `SELECT id, username, email, avatarurl, firstname as "firstName", lastname as "lastName", linkedin, portfolio, leetcode, plan, skills, projectscount, certcount, awardscount, experiencecount FROM users WHERE username = $1 LIMIT 1`,
         [username]
     );
-    
+
     const user = users[0];
     if (!user) return null;
 
@@ -143,14 +143,13 @@ export async function GET(
     try {
         const { username, r } = params;
         const role = r.endsWith(".pdf") ? r.slice(0, -4) : r;
-        
+
         if (!AllowedRoles.has(role)) return NextResponse.json({ error: "Invalid role" }, { status: 400 });
 
-        // 1. Rate Limit (Vercel KV is fast, standard await is fine)
         const limited = await rateLimit(_req, { mode: "ip", route: "resume", limit: 3, windowSec: 60, html: true });
         if (limited) return limited;
 
-        // 2. Check Cache Index (Fast O(1) lookup)
+        // Check Cache
         const cacheResult = await query<{
             url: string;
             compiled_at: string;
@@ -163,58 +162,46 @@ export async function GET(
             [username, role]
         );
 
-        // --- FAST PATH: CACHE HIT ---
+        // Cache Hit
         if (cacheResult.length > 0) {
             const { compiled_at, data_updated_at } = cacheResult[0];
-            
-            // Valid if no data update recorded OR compiled AFTER last data update
+
             if (!data_updated_at || new Date(compiled_at) >= new Date(data_updated_at)) {
-                // Sign the URL for security
                 const signedUrl = await signUrl(`${username}-${role}.pdf`);
-                
                 return NextResponse.redirect(signedUrl, { status: 307 });
             }
         }
 
-        // --- SLOW PATH: CACHE MISS (Generate) ---
-        console.log(`[TIMER][CACHE MISS] Start generation for ${username} role ${role}`); // TIMER: Start of cache miss block
-        const startFetch = Date.now(); // TIMER: Start fetch data
+        // Cache Miss - Generate
         const data = await fetchResumeData(username, role);
-        console.log(`[TIMER][CACHE MISS] fetchResumeData took: ${Date.now() - startFetch}ms`); // TIMER: End fetch data
-        
+
         if (!data) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-        // Generate PDF on Azure
-        const startAzure = Date.now(); // TIMER: Start Azure gen
         const gen = await fetch(RESGEN_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data.payload),
         });
-        console.log(`[TIMER][CACHE MISS] Azure RESGEN fetch took: ${Date.now() - startAzure}ms`); // TIMER: End Azure gen
 
         if (!gen.ok) {
             const errBody = await gen.text();
             return NextResponse.json({ error: "resgen failed", body: errBody }, { status: 500 });
         }
 
-        const startBuffer = Date.now(); // TIMER: Start buffer
         const pdfBuffer = Buffer.from(await gen.arrayBuffer());
-        console.log(`[TIMER][CACHE MISS] Buffer creation took: ${Date.now() - startBuffer}ms`); // TIMER: End buffer
 
         const filename = `${username}-${role}.pdf`;
         const storedPath = `/storage/v1/object/public/aurespdf/${filename}`;
 
-        // Upsert logic
-        const startDB = Date.now(); // TIMER: Start DB upsert
-        await query(
-            `INSERT INTO resumes (user_id, username, role, url, compiled_at, created_at, updated_at, projects, certificates, awards, experience)
-             VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW(), 0, 0, 0, 0)
-             ON CONFLICT (username, role) 
-             DO UPDATE SET url = $4, compiled_at = NOW(), updated_at = NOW()`,
-            [data.user.id, username, role, storedPath]
+        waitUntil(
+            query(
+                `INSERT INTO resumes (user_id, username, role, url, compiled_at, created_at, updated_at, projects, certificates, awards, experience)
+                VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW(), 0, 0, 0, 0)
+                ON CONFLICT (username, role) 
+                DO UPDATE SET url = $4, compiled_at = NOW(), updated_at = NOW()`,
+                [data.user.id, username, role, storedPath]
+            ).catch(err => console.error("Background DB Update Failed:", err))
         );
-        console.log(`[TIMER][CACHE MISS] DB Upsert took: ${Date.now() - startDB}ms`); // TIMER: End DB upsert
 
         return new NextResponse(pdfBuffer, {
             status: 200,
@@ -247,7 +234,7 @@ export async function POST(
         const { username, role } = await req.json();
 
         if (!username || !role) return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
-        
+
         if (!AllowedRoles.has(role)) return NextResponse.json({ error: "Invalid role" }, { status: 400 });
 
         const data = await fetchResumeData(username, role);
