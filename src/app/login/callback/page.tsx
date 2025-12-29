@@ -59,12 +59,11 @@ function GithubCallbackInner() {
                                     cancelText: "DONOT SHOW CANCEL",
                                 });
                             } else if (err.response.status === 403) {
-                                //user not invited, ask them to request an invite
                                 showDialog({
                                     title: "Login Failed",
-                                    message: "Thank you for your interest in AURES! Currently, we are operating on an invite-only basis. Please request an invite to join our platform.",
+                                    message: "Thank you for your interest in Aures! Currently, we are operating on an invite-only basis. We have noted your interest and will get back to you soon with an invitation!",
                                     type: "error",
-                                    confirmText: "Request Invite",
+                                    confirmText: "Okay",
                                     onConfirm: () => { router.push("/"); },
                                     cancelText: "DONOT SHOW CANCEL",
                                 });                                 
