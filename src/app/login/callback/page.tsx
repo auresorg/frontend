@@ -58,6 +58,16 @@ function GithubCallbackInner() {
                                     onConfirm: () => { router.push("/"); },
                                     cancelText: "DONOT SHOW CANCEL",
                                 });
+                            } else if (err.response.status === 403) {
+                                //user not invited, ask them to request an invite
+                                showDialog({
+                                    title: "Login Failed",
+                                    message: "Thank you for your interest in AURES! Currently, we are operating on an invite-only basis. Please request an invite to join our platform.",
+                                    type: "error",
+                                    confirmText: "Request Invite",
+                                    onConfirm: () => { router.push("/"); },
+                                    cancelText: "DONOT SHOW CANCEL",
+                                });                                 
                             } else if (err.response.status === 450) {
                                 // error requesting access token from GitHub
                                 showDialog({
