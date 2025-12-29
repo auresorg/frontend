@@ -4,7 +4,7 @@ import type { User, Project, Education, Certification, Experience, Award } from 
 import { rateLimit } from "@/lib/valkey";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
-const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/resume";
+const RESGEN_URL = "http://localhost:7071/api/resume";
 const RESGEN_TEX_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/tex";
 
 const AllowedRoles = new Set(["frontend", "backend", "fullstack", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]);
@@ -177,27 +177,36 @@ export async function GET(
         }
 
         // --- SLOW PATH: CACHE MISS (Generate) ---
+        console.log(`[TIMER][CACHE MISS] Start generation for ${username} role ${role}`); // TIMER: Start of cache miss block
+        const startFetch = Date.now(); // TIMER: Start fetch data
         const data = await fetchResumeData(username, role);
+        console.log(`[TIMER][CACHE MISS] fetchResumeData took: ${Date.now() - startFetch}ms`); // TIMER: End fetch data
         
         if (!data) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         // Generate PDF on Azure
+        const startAzure = Date.now(); // TIMER: Start Azure gen
         const gen = await fetch(RESGEN_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data.payload),
         });
+        console.log(`[TIMER][CACHE MISS] Azure RESGEN fetch took: ${Date.now() - startAzure}ms`); // TIMER: End Azure gen
 
         if (!gen.ok) {
             const errBody = await gen.text();
             return NextResponse.json({ error: "resgen failed", body: errBody }, { status: 500 });
         }
 
+        const startBuffer = Date.now(); // TIMER: Start buffer
         const pdfBuffer = Buffer.from(await gen.arrayBuffer());
+        console.log(`[TIMER][CACHE MISS] Buffer creation took: ${Date.now() - startBuffer}ms`); // TIMER: End buffer
+
         const filename = `${username}-${role}.pdf`;
         const storedPath = `/storage/v1/object/public/aurespdf/${filename}`;
 
         // Upsert logic
+        const startDB = Date.now(); // TIMER: Start DB upsert
         await query(
             `INSERT INTO resumes (user_id, username, role, url, compiled_at, created_at, updated_at, projects, certificates, awards, experience)
              VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW(), 0, 0, 0, 0)
@@ -205,6 +214,7 @@ export async function GET(
              DO UPDATE SET url = $4, compiled_at = NOW(), updated_at = NOW()`,
             [data.user.id, username, role, storedPath]
         );
+        console.log(`[TIMER][CACHE MISS] DB Upsert took: ${Date.now() - startDB}ms`); // TIMER: End DB upsert
 
         return new NextResponse(pdfBuffer, {
             status: 200,
