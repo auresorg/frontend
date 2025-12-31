@@ -21,6 +21,7 @@ import { useResumeStore } from '@/store/resumeStore';
 import { useUserStore } from '@/store/userStore'; // Import UserStore
 import { getWithToken, nextBase } from '@/lib/utils';
 import { usePresetDialog } from '@/lib/dialogs';
+import { ResumeItem } from '@/lib/types';
 
 export default function ResumeDashboard() {
     const { resumes, hasLoaded, setResumes, setHasLoaded } = useResumeStore();
@@ -39,7 +40,9 @@ export default function ResumeDashboard() {
             try {
                 const response = await getWithToken('/user/roleres');
                 if (response && response.status === 200) {
-                    setResumes(response.data);
+                    const sorted = response.data;
+                    sorted.sort((a: ResumeItem, b: ResumeItem) => a.role.localeCompare(b.role));
+                    setResumes(sorted);
                     setHasLoaded(true);
                 }
             } catch (error) {
@@ -204,7 +207,7 @@ export default function ResumeDashboard() {
                         className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
                     >
                         {resumes.map((item) => {
-                            const displayName = `${item.role.charAt(0).toUpperCase() + item.role.slice(1)} Developer`;
+                            const displayName = `${item.role.charAt(0).toUpperCase() + item.role.slice(1)} Resume`;
                             // Dynamic username in display URL
                             const displayUrl = `${nextBase}/r/${user?.username}/${item.role}`;
 
