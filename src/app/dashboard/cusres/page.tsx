@@ -11,22 +11,50 @@ import {
     RiAwardLine,
     RiArrowRightUpLine,
     RiBriefcaseLine,
+    RiDeleteBinLine,
 } from '@remixicon/react';
 
 import { Card } from '@/components/Card';
 import { Divider } from '@/components/Divider';
 import { Button } from '@/components/Button';
 import { toast } from '@/lib/useToast';
-import { useResumeStore } from '@/store/resumeStore';
-import { useUserStore } from '@/store/userStore'; // Import UserStore
-import { getWithToken, nextBase } from '@/lib/utils';
+import { getWithToken, nextBase, deleteWithToken } from '@/lib/utils';
 import { usePresetDialog } from '@/lib/dialogs';
-import { ResumeItem } from '@/lib/types';
 import { isAxiosError } from 'axios';
+import CustomResumeDialog from '@/components/ui/dashboard/CustomResumeDialog';
+import { useCusresStore } from '@/store/cusresStore';
 
-export default function ResumeDashboard() {
-    const { resumes, hasLoaded, setResumes, setHasLoaded } = useResumeStore();
-    const { user } = useUserStore(); // Get current user
+interface CusresApiResponse {
+  slug: string;
+  compiledAt: string | null;
+  dataUpdatedAt: string | null;
+  stats: {
+    projects: number;
+    certificates: number;
+    awards: number;
+    experience: number;
+  };
+}
+
+interface CusresWithStats {
+  id: string;
+  slug: string;
+  dataUpdatedAt: string;
+  compiledAt: string | null;
+  projects: number[];
+  certifications: number[];
+  awards: number[];
+  experiences: number[];
+  stats: {
+    projects: number;
+    certificates: number;
+    awards: number;
+    experience: number;
+  };
+}
+
+export default function CusresDashboard() {
+    const { cusres, hasLoaded, setCusres, deleteCusres, setHasLoaded } = useCusresStore();
     const [isClient, setIsClient] = useState(false);
     const presetDialog = usePresetDialog();
 
@@ -35,32 +63,54 @@ export default function ResumeDashboard() {
     }, []);
 
     useEffect(() => {
-        async function fetchResumes() {
+        async function fetchCusres() {
             if (!isClient || hasLoaded) return;
 
             try {
-                const response = await getWithToken('/user/roleres');
-                if (response && response.status === 200) {
-                    const sorted = response.data;
-                    sorted.sort((a: ResumeItem, b: ResumeItem) => a.role.localeCompare(b.role));
-                    setResumes(sorted);
+                const response = await getWithToken('/cusres');
+                
+                if (response?.status === 200 && Array.isArray(response.data)) {
+                    const apiData = response.data as CusresApiResponse[];
+                    
+                    // Transform API data to match store format with stats
+                    const transformedData: CusresWithStats[] = apiData.map(item => ({
+                        id: item.slug, // Use slug as ID for frontend
+                        slug: item.slug,
+                        compiledAt: item.compiledAt,
+                        dataUpdatedAt: item.dataUpdatedAt || new Date().toISOString(),
+                        certifications: [],
+                        awards: [],
+                        experiences: [],
+                        projects: [],
+                        stats: item.stats
+                    }));
+                    
+                    // Sort by slug
+                    transformedData.sort((a, b) => a.slug.localeCompare(b.slug));
+                    
+                    setCusres(transformedData);
+                    setHasLoaded(true);
+                } else {
+                    setCusres([]);
                     setHasLoaded(true);
                 }
             } catch (error) {
+                console.error('Error fetching cusres:', error);
                 if (isAxiosError(error) && error.response?.status === 401) {
                     presetDialog('unauthorized');
                     return;
                 }
                 presetDialog('unexpectedError');
                 setHasLoaded(true);
+                setCusres([]);
             }
         }
 
-        fetchResumes();
-    }, [isClient, hasLoaded, setResumes, setHasLoaded, presetDialog]);
+        fetchCusres();
+    }, [isClient, hasLoaded, setCusres, setHasLoaded, presetDialog]);
 
-    const copyLink = (role: string) => {
-        const url = `${nextBase}/r/${user?.username}/${role}`;
+    const copyLink = (slug: string) => {
+        const url = `${nextBase}/cus/${slug}`;
         navigator.clipboard.writeText(`https://${url}`);
         toast({
             title: 'Copied',
@@ -69,21 +119,66 @@ export default function ResumeDashboard() {
         });
     };
 
-    const handleDownload = async (role: string, type: 'pdf' | 'tex') => {
+    const handleDelete = async (slug: string) => {
+        const confirmToast = toast({
+            title: "Confirm Deletion",
+            description: `Are you sure you want to delete "${slug}"?`,
+            variant: "error",
+            action: {
+                altText: "Confirm Delete",
+                label: "Delete",
+                onClick: async () => {
+                    confirmToast.dismiss();
+
+                    try {
+                        const response = await deleteWithToken(`/cusres/${slug}`);
+                        if (response && response.status === 204) {
+                            deleteCusres(slug); // Delete from store using slug as ID
+                            toast({
+                                title: "Resume Deleted",
+                                description: `The custom resume "${slug}" has been deleted.`,
+                                variant: "success",
+                                duration: 4000,
+                            });
+                        }
+                    } catch (error) {
+                        if (isAxiosError(error)) {
+                            if (error.response?.status === 401) {
+                                presetDialog("sessionExpired");
+                            } else if (error.response?.status === 404) {
+                                toast({
+                                    title: "Not Found",
+                                    description: `The resume "${slug}" was not found or has already been deleted.`,
+                                    variant: "error",
+                                    duration: 4000,
+                                });
+                            } else {
+                                toast({
+                                    title: "Deletion Failed",
+                                    description: `An error occurred while deleting the resume "${slug}". Please try again.`,
+                                    variant: "error",
+                                    duration: 4000,
+                                });
+                            }
+                        } else {
+                            presetDialog("unexpectedError");
+                        }
+                    }
+                },
+            },
+        });
+    };
+
+    const handleDownload = async (slug: string, type: 'pdf' | 'tex') => {
         toast({
             title: 'Downloading',
-            description: `Fetching ${role} resume...`,
+            description: `Fetching ${slug} resume...`,
             variant: 'info',
             duration: 2000,
         });
 
         try {
-            const username = user?.username;
-            if (!username) {
-                throw new Error("User not identified");
-            }
-
-            const url = `${nextBase}/r/${username}/${role}`;
+            const url = `${nextBase}/cus/${slug}`;
 
             let response;
 
@@ -91,17 +186,16 @@ export default function ResumeDashboard() {
                 response = await fetch(url, { method: 'GET' });
             } else {
                 const token = localStorage.getItem('token');
-                
+
                 response = await fetch(url, {
                     method: 'POST',
-                    body: JSON.stringify({ username: username, role: role }),
+                    body: JSON.stringify({ slug }),
                     headers: {
-                        'Authorization': `Bearer ${token}`, // Pass the JWT
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                 });
 
-                //if rate limited
                 if (response.status === 429) {
                     toast({
                         title: 'Rate Limited',
@@ -118,14 +212,14 @@ export default function ResumeDashboard() {
             }
 
             const blob = await response.blob();
-            
+
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.download = `${username}-${role}.${type}`;
+            link.download = `${slug}.${type}`;
             document.body.appendChild(link);
             link.click();
-            
+
             document.body.removeChild(link);
             window.URL.revokeObjectURL(downloadUrl);
 
@@ -159,13 +253,16 @@ export default function ResumeDashboard() {
             style={{ height: 'calc(100vh - 2rem)' }}
         >
             {/* Header */}
-            <div className="shrink-0 pb-4">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-50">
-                    Role Based Resumes
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-500">
-                    View your role-specific resumes ({resumes.length} roles)
-                </p>
+            <div className="shrink-0 pb-4 flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-50">
+                        Custom Resumes
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                        View your custom built resumes ({cusres.length} total)
+                    </p>
+                </div>
+                <CustomResumeDialog />
             </div>
 
             <Divider className="my-0!" />
@@ -177,7 +274,6 @@ export default function ResumeDashboard() {
                         {[1, 2, 3].map((i) => (
                             <Card key={i} className="flex flex-col justify-between p-6! animate-pulse">
                                 <div>
-                                    {/* Header Skeleton */}
                                     <div className="flex items-start justify-between">
                                         <div>
                                             <div className="h-5 w-32 bg-gray-200 dark:bg-gray-800 rounded"></div>
@@ -186,10 +282,8 @@ export default function ResumeDashboard() {
                                         <div className="h-5 w-5 bg-gray-200 dark:bg-gray-800 rounded"></div>
                                     </div>
 
-                                    {/* URL Bar Skeleton */}
                                     <div className="mt-5 h-9 w-full bg-gray-200 dark:bg-gray-800 rounded"></div>
 
-                                    {/* Stats Grid Skeleton */}
                                     <div className="mt-5 grid grid-cols-4 gap-2">
                                         {[1, 2, 3, 4].map((j) => (
                                             <div key={j} className="h-14 bg-gray-200 dark:bg-gray-800 rounded"></div>
@@ -197,7 +291,6 @@ export default function ResumeDashboard() {
                                     </div>
                                 </div>
 
-                                {/* Bottom Actions Skeleton */}
                                 <div className="mt-6 flex gap-3">
                                     <div className="h-9 w-full bg-gray-200 dark:bg-gray-800 rounded"></div>
                                     <div className="h-9 w-full bg-gray-200 dark:bg-gray-800 rounded"></div>
@@ -210,24 +303,22 @@ export default function ResumeDashboard() {
                         role="list"
                         className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
                     >
-                        {resumes.map((item) => {
-                            const displayName = `${item.role.charAt(0).toUpperCase() + item.role.slice(1)} Resume`;
-                            // Dynamic username in display URL
-                            const displayUrl = `${nextBase}/r/${user?.username}/${item.role}`;
+                        {(cusres as CusresWithStats[]).map((item) => {
+                            const displayName = `${item.slug.charAt(0).toUpperCase() + item.slug.slice(1)}`;
+                            const displayUrl = `${nextBase}/cus/${item.slug}`;
 
                             const uiStats = [
-                                { label: 'Projects', value: item.stats.projects, icon: RiStackLine },
-                                { label: 'Certs', value: item.stats.certificates, icon: RiAwardLine },
-                                { label: 'Awards', value: item.stats.awards, icon: RiTrophyLine },
-                                { label: 'Exp.', value: item.stats.experience, icon: RiBriefcaseLine },
+                                { label: 'Projects', value: item.stats.projects || 0, icon: RiStackLine },
+                                { label: 'Certs', value: item.stats.certificates || 0, icon: RiAwardLine },
+                                { label: 'Awards', value: item.stats.awards || 0, icon: RiTrophyLine },
+                                { label: 'Exp.', value: item.stats.experience || 0, icon: RiBriefcaseLine },
                             ];
 
                             return (
                                 <Card
-                                    key={item.role}
+                                    key={item.slug}
                                     className="group flex flex-col justify-between p-6! hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
                                 >
-                                    {/* Top Section */}
                                     <div>
                                         <div className="flex items-start justify-between">
                                             <div>
@@ -236,27 +327,35 @@ export default function ResumeDashboard() {
                                                 </h4>
                                                 <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                                     <RiEyeLine className="size-3.5" />
-                                                    Compiled: {formatDate(item.last_compiled)}
+                                                    Compiled: {formatDate(item.compiledAt)}
                                                 </p>
                                             </div>
 
-                                            <a
-                                                href={displayUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-gray-400 hover:text-blue-500 transition-colors"
-                                            >
-                                                <RiArrowRightUpLine className="size-5" />
-                                            </a>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleDelete(item.slug)}
+                                                    className="text-gray-400 hover:text-red-500 transition-colors"
+                                                    title="Delete resume"
+                                                >
+                                                    <RiDeleteBinLine className="size-5" />
+                                                </button>
+                                                <a
+                                                    href={displayUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-gray-400 hover:text-blue-500 transition-colors"
+                                                >
+                                                    <RiArrowRightUpLine className="size-5" />
+                                                </a>
+                                            </div>
                                         </div>
 
-                                        {/* URL Bar */}
                                         <div className="mt-5 flex items-center justify-between rounded-md bg-gray-50 px-3 py-2 border border-gray-100 dark:bg-gray-900 dark:border-gray-800">
                                             <code className="truncate text-xs text-gray-500 font-mono">
                                                 {displayUrl}
                                             </code>
                                             <button
-                                                onClick={() => copyLink(item.role)}
+                                                onClick={() => copyLink(item.slug)}
                                                 className="text-gray-400 hover:text-blue-500 transition-colors ml-2"
                                                 title="Copy URL"
                                             >
@@ -264,7 +363,6 @@ export default function ResumeDashboard() {
                                             </button>
                                         </div>
 
-                                        {/* Stats Grid */}
                                         <div className="mt-5 grid grid-cols-4 gap-2 text-center">
                                             {uiStats.map((stat) => (
                                                 <div
@@ -283,12 +381,11 @@ export default function ResumeDashboard() {
                                         </div>
                                     </div>
 
-                                    {/* Bottom Actions */}
                                     <div className="mt-6 flex gap-3">
                                         <Button
                                             variant="secondary"
                                             className="w-full justify-center"
-                                            onClick={() => handleDownload(item.role, 'tex')}
+                                            onClick={() => handleDownload(item.slug, 'tex')}
                                         >
                                             <RiFileCodeLine className="size-4 mr-2 text-gray-500" />
                                             Source
@@ -297,7 +394,7 @@ export default function ResumeDashboard() {
                                         <Button
                                             variant="primary"
                                             className="w-full justify-center"
-                                            onClick={() => handleDownload(item.role, 'pdf')}
+                                            onClick={() => handleDownload(item.slug, 'pdf')}
                                         >
                                             <RiDownloadLine className="size-4 mr-2" />
                                             PDF

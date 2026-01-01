@@ -11,6 +11,7 @@ export const siteConfig = {
     login: "/",
     onboarding: "/dashboard/onboarding",
     roleres: "/dashboard/roleres",
+    cusres: "/dashboard/cusres",
   },
 }
 

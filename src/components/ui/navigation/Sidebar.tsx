@@ -8,6 +8,7 @@ import {
     FileText,
     Flame,
     FolderClosed,
+    Hammer,
     PanelRightClose,
     PanelRightOpen,
     Trophy
@@ -41,6 +42,7 @@ const navigation = [
 
 const systemNavigation = [
     { name: "Role Resumes", href: siteConfig.baseLinks.roleres, icon: FileText },
+    { name: "Custom Resumes", href: siteConfig.baseLinks.cusres, icon: Hammer },
 ] as const
 
 interface SidebarProps {

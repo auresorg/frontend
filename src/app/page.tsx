@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <>
       <Nav />
-      <main className="pt-[var(--nav-height)]">
+      <main className="pt-(--nav-height)">
 
         <div id="s1">
           <Hero />
@@ -56,11 +56,11 @@ export default function Home() {
           <BackgroundBeamsWithCollision>
             <h2 className="text-2xl relative z-20 md:text-4xl lg:text-7xl font-bold text-center text-black dark:text-white font-sans tracking-tight">
               What&apos;s cooler than Aures?{" "}
-              <div className="relative mx-auto inline-block w-max [filter:drop-shadow(0px_1px_3px_rgba(27,_37,_80,_0.14))]">
-                <div className="absolute left-0 top-[1px] bg-clip-text bg-no-repeat text-transparent bg-gradient-to-r py-4 from-[#0A2FFF] via-[#0B5CFF] to-[#1597FF] [text-shadow:0_0_rgba(0,0,0,0.1)]">
+              <div className="relative mx-auto inline-block w-max filter-[drop-shadow(0px_1px_3px_rgba(27,37,80,0.14))]">
+                <div className="absolute left-0 top-px bg-clip-text bg-no-repeat text-transparent bg-linear-to-r py-4 from-[#0A2FFF] via-[#0B5CFF] to-[#1597FF] [text-shadow:0_0_rgba(0,0,0,0.1)]">
                   <span className="">Exploring Aures.</span>
                 </div>
-                <div className="relative bg-clip-text text-transparent bg-no-repeat bg-gradient-to-r from-[#0A2FFF] via-[#0B5CFF] to-[#1597FF] py-4">
+                <div className="relative bg-clip-text text-transparent bg-no-repeat bg-linear-to-r from-[#0A2FFF] via-[#0B5CFF] to-[#1597FF] py-4">
                   <span className="">Exploring Aures.</span>
                 </div>
               </div>

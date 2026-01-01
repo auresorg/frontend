@@ -91,3 +91,19 @@ export interface ResumeItem {
     last_compiled: string | null;
     stats: ResumeStats;
 }
+export interface Cusres {
+  id: string;
+  slug: string;
+  dataUpdatedAt: string;
+  compiledAt: string | null;
+  projects: number[];
+  certifications: number[];
+  awards: number[];
+  experiences: number[];
+  stats: {
+    projects: number;
+    certificates: number;
+    awards: number;
+    experience: number;
+  };
+}

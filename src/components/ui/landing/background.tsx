@@ -70,7 +70,7 @@ export const BackgroundBeamsWithCollision = ({
         <div
             ref={parentRef}
             className={clsx(
-                "h-96 md:h-[40rem] bg-gradient-to-b from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-800 relative flex items-center w-full justify-center overflow-hidden",
+                "h-96 md:h-160 bg-linear-to-b from-white to-neutral-100 dark:from-neutral-950 dark:to-neutral-800 relative flex items-center w-full justify-center overflow-hidden",
                 // h-screen if you want bigger
                 className
             )}
@@ -200,7 +200,7 @@ const CollisionMechanism = React.forwardRef<
                     repeatDelay: beamOptions.repeatDelay || 0,
                 }}
                 className={clsx(
-                    "absolute left-0 top-20 m-auto h-14 w-px rounded-full bg-gradient-to-t from-[#0B5CFF] via-[#1597FF] to-transparent",
+                    "absolute left-0 top-20 m-auto h-14 w-px rounded-full bg-linear-to-t from-[#0B5CFF] via-[#1597FF] to-transparent",
                     beamOptions.className
                 )}
             />
@@ -239,7 +239,7 @@ const Explosion = ({ ...props }: React.HTMLProps<HTMLDivElement>) => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 1.5, ease: "easeOut" }}
-                className="absolute -inset-x-10 top-0 m-auto h-2 w-10 rounded-full bg-gradient-to-b from-[#0B5CFF] to-[#1597FF] blur-sm"
+                className="absolute -inset-x-10 top-0 m-auto h-2 w-10 rounded-full bg-linear-to-b from-[#0B5CFF] to-[#1597FF] blur-sm"
             ></motion.div>
             {spans.map((span) => (
                 <motion.span
@@ -251,7 +251,7 @@ const Explosion = ({ ...props }: React.HTMLProps<HTMLDivElement>) => {
                         opacity: 0,
                     }}
                     transition={{ duration: Math.random() * 1.5 + 0.5, ease: "easeOut" }}
-                    className="absolute h-1 w-1 rounded-full bg-gradient-to-b from-[#0B5CFF] to-[#1597FF]"
+                    className="absolute h-1 w-1 rounded-full bg-linear-to-b from-[#0B5CFF] to-[#1597FF]"
                 />
             ))}
         </div>
