@@ -88,6 +88,24 @@ export async function GET(
         `);
     }
 
+    if (requestedFields.has('certificates')) {
+        jsonParts.push(`
+            'certificates', (
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'title', c.title,
+                        'platform', c.platform,
+                        'description', ${SQL_CLEAN('c.description')},
+                        'url', c.url,
+                        'completedOn', c.completed_on,
+                        'role', c.role
+                    )
+                ), '[]'::json)
+                FROM certification c WHERE c.user_id = u.id
+            ) ELSE NULL END
+        `);
+    }
+
     if (requestedFields.has('skills')) {
         jsonParts.push("'skills', u.skills");
     }
