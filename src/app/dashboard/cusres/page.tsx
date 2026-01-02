@@ -110,7 +110,7 @@ export default function CusresDashboard() {
     }, [isClient, hasLoaded, setCusres, setHasLoaded, presetDialog]);
 
     const copyLink = (slug: string) => {
-        const url = `${nextBase}/cus/${slug}`;
+        const url = `${nextBase}/c/${slug}`;
         navigator.clipboard.writeText(`https://${url}`);
         toast({
             title: 'Copied',
@@ -178,7 +178,7 @@ export default function CusresDashboard() {
         });
 
         try {
-            const url = `${nextBase}/cus/${slug}`;
+            const url = `${nextBase}/c/${slug}`;
 
             let response;
 
@@ -305,7 +305,7 @@ export default function CusresDashboard() {
                     >
                         {(cusres as CusresWithStats[]).map((item) => {
                             const displayName = `${item.slug.charAt(0).toUpperCase() + item.slug.slice(1)}`;
-                            const displayUrl = `${nextBase}/cus/${item.slug}`;
+                            const displayUrl = `${nextBase}/c/${item.slug}`;
 
                             const uiStats = [
                                 { label: 'Projects', value: item.stats.projects || 0, icon: RiStackLine },
