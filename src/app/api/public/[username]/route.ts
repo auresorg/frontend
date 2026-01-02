@@ -9,6 +9,19 @@ interface UserData {
 
 const SQL_CLEAN = (col: string) => `REGEXP_REPLACE(${col}, '##\\w+##', '', 'g')`;
 
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, x-select",
+};
+
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 204,
+        headers: CORS_HEADERS,
+    });
+}
+
 export async function GET(
     request: NextRequest,
     { params }: { params: { username: string } }
@@ -26,7 +39,7 @@ export async function GET(
     const selectParam = request.nextUrl.searchParams.get('select') || request.headers.get('x-select');
 
     if (!selectParam) {
-        return NextResponse.json({ error: "Missing 'select' parameter" }, { status: 400 });
+        return NextResponse.json({ error: "Missing 'select' parameter" }, { status: 400, headers: CORS_HEADERS });
     }
 
     const requestedFields = new Set(selectParam.split(',').map(s => s.trim()));
@@ -117,17 +130,18 @@ export async function GET(
         const responseData = result[0]?.data;
 
         if (!responseData) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+            return NextResponse.json({ error: "User not found" }, { status: 404, headers: CORS_HEADERS });
         }
 
         return NextResponse.json(responseData, {
             status: 200,
             headers: {
+                ...CORS_HEADERS,
                 "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30",
                 "Content-Type": "application/json"
             }
         });
     } catch {
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500, headers: CORS_HEADERS });
     }
 }
