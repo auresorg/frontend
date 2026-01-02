@@ -11,7 +11,7 @@ import {
 } from "@/components/Drawer"
 import { cx, focusRing } from "@/lib/utils"
 
-import { BriefcaseBusiness, FileBadge, FileText, Flame, FolderClosed, Menu, Trophy } from "lucide-react"
+import { BriefcaseBusiness, FileBadge, FileText, Flame, FolderClosed, Hammer, Menu, Trophy } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -39,6 +39,7 @@ const navigation = [
 
 const systemNavigation = [
     { name: "Role Resumes", href: siteConfig.baseLinks.roleres, icon: FileText },
+    { name: "Custom Resumes", href: siteConfig.baseLinks.cusres, icon: Hammer },
 ] as const
 
 export default function MobileSidebar() {
