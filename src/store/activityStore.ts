@@ -234,29 +234,9 @@ export const useActivityStore = create<ActivityState>()(
                         isLoading: false
                     });
 
-                } catch (error) {
-                    // Fallback: Generate mock data for testing
-                    console.warn('Using mock LeetCode submissions data:', error);
-                    
-                    const mockSubmissions: LeetCodeSubmission[] = [];
-                    const today = new Date();
-                    
-                    for (let i = 29; i >= 0; i--) {
-                        const date = new Date(today);
-                        date.setDate(date.getDate() - i);
-                        const dateStr = date.toISOString().split('T')[0];
-                        
-                        // Random submissions between 0-5 for mock data
-                        const mockCount = Math.floor(Math.random() * 6);
-                        
-                        mockSubmissions.push({
-                            date: dateStr,
-                            count: mockCount
-                        });
-                    }
-
+                } catch {
                     set({
-                        leetcodeSubmissions: mockSubmissions,
+                        leetcodeSubmissions: [],
                         lastUpdated: new Date(),
                         isLoading: false
                     });
