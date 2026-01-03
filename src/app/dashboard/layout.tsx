@@ -57,7 +57,6 @@ export default function Layout({
 
     if (!isClient) return null
 
-
     if (!user) {
         const token = localStorage.getItem('token')
         if (token) {
@@ -69,20 +68,23 @@ export default function Layout({
     }
 
     return (
-        <div className="mx-auto max-w-screen-2xl">
+        <div className="mx-auto max-w-screen-2xl h-screen flex flex-col">
             <Toaster />
-            <Sidebar isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
-            <main
-                className={cx(
-                    isCollapsed ? "lg:pl-[60px]" : "lg:pl-64",
-                    "ease transform-gpu transition-all duration-100 will-change-transform lg:bg-gray-50 lg:py-3 lg:pr-3 lg:dark:bg-gray-950",
-                )}
-                style={{ height: "100vh" }}
-            >
-                <div className="bg-white p-4 sm:p-6 lg:rounded-lg lg:border lg:border-gray-200 dark:bg-gray-925 lg:dark:border-gray-900" style={{ height: "100%" }} >
-                    {children}
-                </div>
-            </main>
+            <div className="flex flex-1 overflow-hidden">
+                <Sidebar isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
+                <main
+                    className={cx(
+                        isCollapsed ? "lg:pl-[60px]" : "lg:pl-64",
+                        "ease transform-gpu transition-all duration-100 will-change-transform lg:bg-gray-50 lg:dark:bg-gray-950 flex-1 overflow-hidden",
+                    )}
+                >
+                    <div className="h-full overflow-auto">
+                        <div className="bg-white p-4 sm:p-6 dark:bg-gray-925 min-h-full">
+                            {children}
+                        </div>
+                    </div>
+                </main>
+            </div>
         </div>
     )
 }

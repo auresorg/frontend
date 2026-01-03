@@ -1,7 +1,6 @@
 'use client';
 
 import { Card } from '@/components/Card';
-import { Code } from 'lucide-react';
 
 interface LeetcodeCardProps {
     totalSolved: number;
@@ -10,6 +9,7 @@ interface LeetcodeCardProps {
     hardSolved: number;
     change?: string;
     changeType?: 'positive' | 'negative';
+    isLoading?: boolean;
 }
 
 export default function LeetcodeCard({ 
@@ -17,8 +17,9 @@ export default function LeetcodeCard({
     easySolved, 
     mediumSolved, 
     hardSolved,
-    change = '+12.5%',
-    changeType = 'positive'
+    change = '',
+    changeType = 'positive',
+    isLoading = false
 }: LeetcodeCardProps) {
     const getChangeColor = (type: 'positive' | 'negative') => {
         return type === 'positive' 
@@ -34,15 +35,52 @@ export default function LeetcodeCard({
         }
     };
 
+    if (isLoading) {
+        return (
+            <Card className="p-0!">
+                <div className="px-4 py-4">
+                    <div className="mb-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg mr-3 animate-pulse">
+                                    <div className="w-4 h-4 bg-orange-200 dark:bg-orange-800 rounded"></div>
+                                </div>
+                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+                            </div>
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-12 animate-pulse"></div>
+                        </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2 animate-pulse"></div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                        <div className="text-center">
+                            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-6 mb-1 animate-pulse mx-auto"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-10 animate-pulse"></div>
+                        </div>
+                        <div className="text-center">
+                            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-6 mb-1 animate-pulse mx-auto"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-12 animate-pulse"></div>
+                        </div>
+                        <div className="text-center">
+                            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-6 mb-1 animate-pulse mx-auto"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-8 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </Card>
+        );
+    }
+
     return (
         <Card className="p-0!">
             <div className="px-4 py-4">
                 <div className="mb-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                            <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg mr-3">
-                                <Code className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                            </div>
                             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
                                 Problems Solved
                             </h3>

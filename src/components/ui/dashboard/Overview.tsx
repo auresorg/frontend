@@ -1,85 +1,100 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useUserStore } from '@/store/userStore';
 import HealthCard from './HealthCard';
 import ProjectsCard from './ProjectCard';
 import StreakCard from './StreakCard';
 import LeetcodeCard from './LeetcodeCard';
+import { useActivityStore } from '@/store/activityStore';
+import { Graph } from './Graph';
+import SkillsCard from './SkillsCard'; // Import the new SkillsCard
 
 export default function Overview() {
-    const [details, setDetails] = useState<number[]>([]);
     const user = useUserStore((state) => state.user);
-    
+
+    const {
+        setUsernames,
+        fetchGitHubContributions,
+        fetchLeetCodeStats,
+        fetchLeetCodeSubmissions,
+        githubStreak,
+        leetcodeStats,
+        isLoading
+    } = useActivityStore();
+
+    // Set usernames from user data
     useEffect(() => {
         if (user) {
-            setDetails([
-                user.projectsCount,
-                user.skillCount,
-                user.certCount,
-                user.experienceCount,
-            ]);
+            const githubUsername = user.username;
+            const leetcodeUsername = user.leetcode || null;
+            setUsernames(githubUsername, leetcodeUsername);
         }
-    }, [user?.projectsCount, user?.skillCount, user?.certCount, user?.experienceCount, user]);
+    }, [user, setUsernames]);
 
-    const data = [
-        {
-            name: 'Projects',
-            value: details[0] ?? 0,
-            change: '+6.1%',
-            changeType: 'positive' as const,
-            href: 'projects',
-        },
-        {
-            name: 'Skills',
-            value: details[1] ?? 0,
-            change: '+3.4%',
-            changeType: 'positive' as const,
-            href: 'projects',
-        },
-        {
-            name: 'Certifications',
-            value: details[2] ?? 0,
-            change: '+1.1%',
-            changeType: 'positive' as const,
-            href: 'certifications',
-        },
-        {
-            name: 'Experience',
-            value: details[3] ?? 0,
-            change: '-0.5%',
-            changeType: 'negative' as const,
-            href: 'experience',
-        },
-    ];
+    // Fetch activity data
+    useEffect(() => {
+        const fetchActivityData = async () => {
+            if (!user) return;
 
-    // Mock data - replace with actual data
-    const streakDays = 14;
-    const leetcodeStats = {
-        totalSolved: 147,
-        easySolved: 85,
-        mediumSolved: 52,
-        hardSolved: 10
+            const { lastUpdated } = useActivityStore.getState();
+            const shouldFetch = !lastUpdated ||
+                (new Date().getTime() - new Date(lastUpdated).getTime() > 5 * 60 * 1000);
+
+            if (shouldFetch) {
+                try {
+                    await Promise.allSettled([
+                        fetchGitHubContributions(),
+                        fetchLeetCodeStats(),
+                        fetchLeetCodeSubmissions()
+                    ]);
+                } catch (error) {
+                    console.error('Error fetching activity data:', error);
+                }
+            }
+        };
+
+        fetchActivityData();
+    }, [user, fetchGitHubContributions, fetchLeetCodeStats, fetchLeetCodeSubmissions]);
+
+    // Prepare leetcode data for card
+    const leetcodeData = leetcodeStats || {
+        totalSolved: 0,
+        easySolved: 0,
+        mediumSolved: 0,
+        hardSolved: 0
     };
 
     return (
-        <div className="obfuscate">
-            <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-6">
+            {/* First row: 4 Cards */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <HealthCard />
-                <StreakCard days={streakDays} />
-                <ProjectsCard 
-                    value={data[0].value}
-                    change={data[0].change}
-                    changeType={data[0].changeType}
-                    href={data[0].href}
+                <StreakCard days={githubStreak} />
+                <ProjectsCard
+                    value={user?.projectsCount || 0}
+                    change=""
+                    changeType="positive"
+                    href="projects"
                 />
-                <LeetcodeCard 
-                    totalSolved={leetcodeStats.totalSolved}
-                    easySolved={leetcodeStats.easySolved}
-                    mediumSolved={leetcodeStats.mediumSolved}
-                    hardSolved={leetcodeStats.hardSolved}
+                <LeetcodeCard
+                    totalSolved={leetcodeData.totalSolved}
+                    easySolved={leetcodeData.easySolved}
+                    mediumSolved={leetcodeData.mediumSolved}
+                    hardSolved={leetcodeData.hardSolved}
+                    isLoading={isLoading}
                 />
-            </dl>
+            </div>
+
+            {/* Second row: Graph in 2 columns, Skills card in 1 column */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <Graph />
+                </div>
+                <div className="lg:col-span-1">
+                    <SkillsCard />
+                </div>
+            </div>
         </div>
     );
 }
