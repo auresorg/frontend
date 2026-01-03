@@ -121,9 +121,7 @@ export default function HealthCard() {
                             <span className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
                                 {healthScore}
                             </span>
-                            <span className="block text-xs text-gray-500 dark:text-gray-400">
-                                /100
-                            </span>
+                            
                         </div>
                     </ProgressCircle>
                 </div>
