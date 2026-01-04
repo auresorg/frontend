@@ -9,6 +9,7 @@ import { isAxiosError } from "axios"
 import { usePresetDialog } from "@/lib/dialogs"
 import Loading from "@/components/Loading"
 import { Toaster } from "@/components/Toaster"
+import { usePathname } from "next/navigation"
 
 export default function Layout({
     children,
@@ -25,6 +26,8 @@ export default function Layout({
     const PresetDialog = usePresetDialog()
 
     const [isClient, setIsClient] = useState(false)
+    const pathname = usePathname(); // <-- moved to top level
+
     useEffect(() => { setIsClient(true) }, [])
 
     useEffect(() => {
@@ -57,7 +60,6 @@ export default function Layout({
 
     if (!isClient) return null
 
-
     if (!user) {
         const token = localStorage.getItem('token')
         if (token) {
@@ -68,6 +70,9 @@ export default function Layout({
         }
     }
 
+    //findout if is overview page
+    const isOverviewPage = pathname === "/dashboard/overview";
+
     return (
         <div className="mx-auto max-w-screen-2xl">
             <Toaster />
@@ -77,7 +82,7 @@ export default function Layout({
                     isCollapsed ? "lg:pl-[60px]" : "lg:pl-64",
                     "ease transform-gpu transition-all duration-100 will-change-transform lg:bg-gray-50 lg:py-3 lg:pr-3 lg:dark:bg-gray-950 overflow-auto",
                 )}
-                style={{ height: "100vh" }}
+                style={{ height: isOverviewPage ? "105vh" : "100vh" }}
             >
                 <div className="bg-white p-4 sm:p-6 lg:rounded-lg lg:border lg:border-gray-200 dark:bg-gray-925 lg:dark:border-gray-900" style={{ height: "100%" }} >
                     {children}
