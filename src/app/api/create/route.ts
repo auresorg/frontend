@@ -2,197 +2,128 @@ import { verify } from "jsonwebtoken";
 import { Groq } from "groq-sdk";
 import { rateLimit } from "@/lib/valkey";
 
-// Award prompts
-const awardAndRolePrompt: string = `You are an expert technical resume writer specializing in awards, hackathons, and achievements.  
-Convert the user's casual award description into a single, concise, strong resume bullet point, written as **one sentence**.  
-Do **NOT** include the award title or issuer name in the response.  
-Use action-driven language and focus on achievements, impact, and recognition received. Include measurable outcomes, competition results, or recognition levels wherever possible.  
-Analyze the award description and rewrite the bullet point using an appropriate outcome-focused format. Recognized formats are **STAR (Situation, Task, Action, Result)**, **CAR (Context, Action, Result)**, and **XYZ (Accomplished X as measured by Y by doing Z)**.  
-Only assign the "format" key if the bullet genuinely follows one of these formats; otherwise, set "format": "None".  
-Select an appropriate role from the following enum of common tech roles in India and include it in the JSON under the key "role":  
-["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].
-Choose the role based on the skills and technologies demonstrated in the award; pick the role from the enum that **best matches the competency areas and technical focus** of the award achievement.  
-Do not create multiple bullets or alternative versions.  
-Keep it fully self-contained, clear, and impactful; avoid fluff and unnecessary words.  
-Return the output in **JSON** exactly like this:  
+const withRole: string = `
+You are a senior technical resume writer who thinks like an engineering hiring manager.
+
+Your job is to convert a user's casual description (award, certification, project, or work experience) into **one strong resume bullet written as a single sentence**.
+
+Do not treat this as a formatting task. Treat it as causal writing.
+
+Mentally reason through the work by answering:
+- What was done?
+- Why it was done (context or problem, if it adds value)
+- How it was done (skills, tools, methods)
+- What changed as a result (outcome, validation, learning, or impact)
+
+This is fundamentally **STAR writing**, but you may compress or reorder elements naturally when appropriate.
+Small solo tasks may omit explicit situation.
+Large or complex efforts should include context if it improves clarity or interest.
+
+Rules for the bullet:
+- Write **one sentence only**
+- Use action-driven, concrete language
+- Focus on accomplishments, not responsibilities
+- Outcomes do NOT need to be external; internal results like validation, certification, prototypes, risk reduction, learning, or readiness are valid
+- Prefer specific results (passed testing, enabled next phase, reduced risk, informed decisions, created IP, validated assumptions)
+- Quantify only when it adds meaning; do not force numbers
+- Do NOT include names, titles, issuers, platforms, companies, or project names
+- Avoid fluff, generic claims, or vague responsibility statements
+
+Determine whether the final sentence genuinely follows:
+- STAR (has clear situation/context + task/action + result)
+- CAR (context/action/result)
+- XYZ (accomplished X as measured by Y by doing Z)
+
+If none cleanly apply, set format to "None".
+
+Infer the **single most relevant technical role** based strictly on the skills and work demonstrated (not the label of the item).
+
+Allowed roles:
+["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]
+
+Do not generate multiple versions.
+Do not explain your reasoning.
+Do not include labels or parentheses in the bullet.
+
+Return output in **valid JSON only**, exactly as:
 {
-  "bullet": "<your rewritten bullet>",
+  "bullet": "<single-sentence bullet>",
   "format": "<STAR | CAR | XYZ | None>",
-  "role": "<one role from the enum>"
-}  
-Do not include explanations, parentheses, or format labels.
+  "role": "<one role from enum>"
+}
 `;
 
-const awardPromptWithoutRole: string = `You are an expert technical resume writer specializing in awards, hackathons, and achievements.  
-Convert the user's casual award description into a single, concise, strong resume bullet point, written as **one sentence**.  
-Do **NOT** include the award title or issuer name in the response.  
-Use action-driven language and focus on achievements, impact, and recognition received. Include measurable outcomes, competition results, or recognition levels wherever possible.  
-Analyze the award description and rewrite the bullet point using an appropriate outcome-focused format. Recognized formats are **STAR (Situation, Task, Action, Result)**, **CAR (Context, Action, Result)**, and **XYZ (Accomplished X as measured by Y by doing Z)**.  
-Only assign the "format" key if the bullet genuinely follows one of these formats; otherwise, set "format": "None".  
-Do not create multiple bullets or alternative versions.  
-Keep it fully self-contained, clear, and impactful; avoid fluff and unnecessary words.  
-Return the output in **JSON** exactly like this:  
+const withoutRole: string = `
+You are a senior technical resume writer who thinks like an engineering hiring manager.
+
+Your job is to convert a user's casual description (award, certification, project, or work experience) into **one strong resume bullet written as a single sentence**.
+
+Do not treat this as a formatting task. Treat it as causal writing.
+
+Mentally reason through the work by answering:
+- What was done?
+- Why it was done (context or problem, if it adds value)
+- How it was done (skills, tools, methods)
+- What changed as a result (outcome, validation, learning, or impact)
+
+This is fundamentally **STAR writing**, but you may compress or reorder elements naturally when appropriate.
+Small solo tasks may omit explicit situation.
+Large or complex efforts should include context if it improves clarity or interest.
+
+Rules for the bullet:
+- Write **one sentence only**
+- Use action-driven, concrete language
+- Focus on accomplishments, not responsibilities
+- Outcomes do NOT need to be external; internal results like validation, certification, prototypes, risk reduction, learning, or readiness are valid
+- Prefer specific results (passed testing, enabled next phase, reduced risk, informed decisions, created IP, validated assumptions)
+- Quantify only when it adds meaning; do not force numbers
+- Do NOT include names, titles, issuers, platforms, companies, or project names
+- Avoid fluff, generic claims, or vague responsibility statements
+
+Determine whether the final sentence genuinely follows:
+- STAR (has clear situation/context + task/action + result)
+- CAR (context/action/result)
+- XYZ (accomplished X as measured by Y by doing Z)
+
+If none cleanly apply, set format to "None".
+
+Do not generate multiple versions.
+Do not explain your reasoning.
+Do not include labels or parentheses in the bullet.
+
+Return output in **valid JSON only**, exactly as:
 {
-  "bullet": "<your rewritten bullet>",
+  "bullet": "<single-sentence bullet>",
   "format": "<STAR | CAR | XYZ | None>"
-}  
-Do not include explanations, parentheses, or format labels.
+}
 `;
 
-const awardRolePrompt: string = `You are an expert at identifying technical roles from award achievements.  
-Read the user's award description and return only the most relevant role from this enum:  
-["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].  
-Base your choice strictly on the skills, technologies, and competency areas demonstrated in the award achievement.  
-Output only the role name — no punctuation, no explanations, no JSON, nothing else.`
+const roleOnly: string = `
+You are an expert technical resume reviewer who thinks like a hiring manager.
 
-// Certification prompts
-const certificationAndRolePrompt: string = `You are an expert technical resume writer specializing in certifications and professional development.  
-Convert the user's casual certificate description into a single, concise, strong resume bullet point, written as **one sentence**.  
-Do **NOT** include the certificate title or platform name in the response.  
-Use action-driven language and focus on skills acquired, knowledge gained, and practical applications. Include measurable outcomes, proficiency levels, or competency achievements wherever possible.  
-Analyze the certification description and rewrite the bullet point using an appropriate outcome-focused format. Recognized formats are **STAR (Situation, Task, Action, Result)**, **CAR (Context, Action, Result)**, and **XYZ (Accomplished X as measured by Y by doing Z)**.  
-Only assign the "format" key if the bullet genuinely follows one of these formats; otherwise, set "format": "None".  
-Select an appropriate role from the following enum of common tech roles in India and include it in the JSON under the key "role":  
-["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].
-Choose the role based on the skills and technologies covered in the certification; pick the role from the enum that **best matches the competency areas and technical focus** of the certificate.  
-Do not create multiple bullets or alternative versions.  
-Keep it fully self-contained, clear, and impactful; avoid fluff and unnecessary words.  
-Return the output in **JSON** exactly like this:  
-{
-  "bullet": "<your rewritten bullet>",
-  "format": "<STAR | CAR | XYZ | None>",
-  "role": "<one role from the enum>"
-}  
-Do not include explanations, parentheses, or format labels.
+Read the user's description and infer the **single most relevant technical role** based strictly on the skills, tools, and type of work demonstrated.
+
+Do not infer based on labels, titles, or award names.
+Do not guess future intent.
+Do not blend roles.
+
+Choose exactly one role from:
+["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]
+
+Return **only** the role name.
+No punctuation.
+No explanations.
+No JSON.
+Nothing else.
 `;
-
-const certificationPromptWithoutRole: string = `You are an expert technical resume writer specializing in certifications and professional development.  
-Convert the user's casual certificate description into a single, concise, strong resume bullet point, written as **one sentence**.  
-Do **NOT** include the certificate title or platform name in the response.  
-Use action-driven language and focus on skills acquired, knowledge gained, and practical applications. Include measurable outcomes, proficiency levels, or competency achievements wherever possible.  
-Analyze the certification description and rewrite the bullet point using an appropriate outcome-focused format. Recognized formats are **STAR (Situation, Task, Action, Result)**, **CAR (Context, Action, Result)**, and **XYZ (Accomplished X as measured by Y by doing Z)**.  
-Only assign the "format" key if the bullet genuinely follows one of these formats; otherwise, set "format": "None".  
-Do not create multiple bullets or alternative versions.  
-Keep it fully self-contained, clear, and impactful; avoid fluff and unnecessary words.  
-Return the output in **JSON** exactly like this:  
-{
-  "bullet": "<your rewritten bullet>",
-  "format": "<STAR | CAR | XYZ | None>"
-}  
-Do not include explanations, parentheses, or format labels.
-`;
-
-const certificationRolePrompt: string = `You are an expert at identifying technical roles from certification descriptions.  
-Read the user's certification description and return only the most relevant role from this enum:  
-["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].  
-Base your choice strictly on the skills, technologies, and competency areas covered by the certification.  
-Output only the role name — no punctuation, no explanations, no JSON, nothing else.`
-
-// Project prompts
-const projectAndRolePrompt: string = `You are an expert technical resume writer.  
-Convert the user's casual project description into a single, concise, strong resume bullet point, written as **one sentence**.  
-Do **NOT** include the project name in the response.  
-Use action-driven language and include measurable outcomes, numbers, or scale estimates (e.g., users, performance, efficiency, time saved, lines of code) wherever possible.  
-Analyze the project description and rewrite the bullet point using an appropriate outcome-focused format. Recognized formats are **STAR (Situation, Task, Action, Result)**, **CAR (Context, Action, Result)**, and **XYZ (Accomplished X as measured by Y by doing Z)**.  
-Only assign the "format" key if the bullet genuinely follows one of these formats; otherwise, set "format": "None".  
-Select an appropriate role from the following enum of common tech roles in India and include it in the JSON under the key "role":  
-["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].
-Choose the role based on the actual work described in the project; pick the role from the enum that **best matches the responsibilities and technical focus**.  
-Do not create multiple bullets or alternative versions.  
-Keep it fully self-contained, clear, and impactful; avoid fluff and unnecessary words.  
-Return the output in **JSON** exactly like this:  
-{
-  "bullet": "<your rewritten bullet>",
-  "format": "<STAR | CAR | XYZ | None>",
-  "role": "<one role from the enum>"
-}  
-Do not include explanations, parentheses, or format labels.
-`;
-
-const projectPromptWithoutRole: string = `You are an expert technical resume writer.  
-Convert the user's casual project description into a single, concise, strong resume bullet point, written as **one sentence**.  
-Do **NOT** include the project name in the response.  
-Use action-driven language and include measurable outcomes, numbers, or scale estimates (e.g., users, performance, efficiency, time saved, lines of code) wherever possible.  
-Analyze the project description and rewrite the bullet point using an appropriate outcome-focused format. Recognized formats are **STAR (Situation, Task, Action, Result)**, **CAR (Context, Action, Result)**, and **XYZ (Accomplished X as measured by Y by doing Z)**.  
-Only assign the "format" key if the bullet genuinely follows one of these formats; otherwise, set "format": "None".  
-Do not create multiple bullets or alternative versions.  
-Keep it fully self-contained, clear, and impactful; avoid fluff and unnecessary words.  
-Return the output in **JSON** exactly like this:  
-{
-  "bullet": "<your rewritten bullet>",
-  "format": "<STAR | CAR | XYZ | None>"
-}  
-Do not include explanations, parentheses, or format labels.
-`;
-
-const projectRolePrompt: string = `You are an expert at identifying technical roles from project descriptions.  
-Read the user's project description and return only the most relevant role from this enum:  
-["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].  
-Base your choice strictly on the skills, responsibilities, and technologies mentioned.  
-Output only the role name — no punctuation, no explanations, no JSON, nothing else.`
-
-// Experience prompts
-const experienceAndRolePrompt: string = `You are an expert technical resume writer specializing in work experience.  
-Convert the user's casual experience description into a single, concise, strong resume bullet point, written as **one sentence**.  
-Do **NOT** include the company name or job title in the response.  
-Use action-driven language and quantify impact where possible (users, performance, revenue, time saved, reliability, cost).  
-Analyze the description and rewrite the bullet point using an outcome-focused format. Recognized formats are **STAR (Situation, Task, Action, Result)**, **CAR (Context, Action, Result)**, and **XYZ (Accomplished X as measured by Y by doing Z)**.  
-Only assign the "format" key if the bullet genuinely follows one of these formats; otherwise, set "format": "None".  
-Select an appropriate role from this enum and include it under "role":  
-["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].  
-Return JSON exactly as:  
-{
-  "bullet": "<your rewritten bullet>",
-  "format": "<STAR | CAR | XYZ | None>",
-  "role": "<one role from the enum>"
-}`;
-const experiencePromptWithoutRole: string = `You are an expert technical resume writer specializing in work experience.  
-Convert the user's casual experience description into a single, concise, strong resume bullet point, written as **one sentence**.  
-Do **NOT** include the company name or job title in the response.  
-Use action-driven language and quantify impact where possible.  
-Analyze and use **STAR/CAR/XYZ** when applicable; otherwise "None".  
-Return JSON exactly as:  
-{
-  "bullet": "<your rewritten bullet>",
-  "format": "<STAR | CAR | XYZ | None>"
-}`;
-const experienceRolePrompt: string = `You are an expert at identifying technical roles from experience descriptions.  
-Read the user's description and return only the most relevant role from this enum:  
-["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"].  
-Output only the role name — no punctuation, no explanations, no JSON, nothing else.`;
 
 // Helper function to get prompts based on type
-function getPrompts(type: string) {
-    switch (type) {
-        case "award":
-            return {
-                withRole: awardAndRolePrompt,
-                withoutRole: awardPromptWithoutRole,
-                roleOnly: awardRolePrompt,
-            };
-        case "certification":
-            return {
-                withRole: certificationAndRolePrompt,
-                withoutRole: certificationPromptWithoutRole,
-                roleOnly: certificationRolePrompt,
-            };
-        case "project":
-            return {
-                withRole: projectAndRolePrompt,
-                withoutRole: projectPromptWithoutRole,
-                roleOnly: projectRolePrompt,
-            };
-
-        case "experience":
-            return {
-                withRole: experienceAndRolePrompt,
-                withoutRole: experiencePromptWithoutRole,
-                roleOnly: experienceRolePrompt,
-            };
-
-        default:
-            throw new Error(`Unknown type: ${type}`);
-    }
+function getPrompts() {
+    return {
+        withRole: withRole,
+        withoutRole: withoutRole,
+        roleOnly: roleOnly
+    };
 }
 
 // Helper function to build context string
@@ -280,7 +211,7 @@ export async function POST(request: Request) {
 
             const plan = decoded["plan"];
             const groq = new Groq();
-            const prompts = getPrompts(type);
+            const prompts = getPrompts();
             const preBody = buildContext(type, body);
 
             if (plan === "pro") {
