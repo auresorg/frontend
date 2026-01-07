@@ -7,6 +7,14 @@ import React from "react"
 import logo from "@/assets/images/cover.png"
 import Image from "next/image"
 
+import { useEffect, useState } from "react"
+import { getWithToken } from "@/lib/utils"
+import { useUserStore } from "@/store/userStore"
+import { isAxiosError } from "axios"
+import { usePresetDialog } from "@/lib/dialogs"
+import Loading from "@/components/Loading"
+
+
 interface Step {
     name: string
     href: string
@@ -62,6 +70,57 @@ const Layout = ({
     children: React.ReactNode
 }>) => {
     const scrolled = useScroll(15)
+
+    const user = useUserStore((state) => state.user)
+    const setUser = useUserStore((state) => state.setUser)
+    const PresetDialog = usePresetDialog()
+
+    const [isClient, setIsClient] = useState(false)
+
+    useEffect(() => {
+        setIsClient(true)
+    }, [])
+
+    useEffect(() => {
+        async function fetchUser() {
+            if (!isClient) return
+            if (localStorage.getItem("token") !== null && !user) {
+                try {
+                    const response = await getWithToken("/user")
+                    if (response?.status === 200) {
+                        response.data.skillCount = Object.keys(response.data.skills).length
+                        setUser(response.data)
+                    }
+                } catch (error) {
+                    if (isAxiosError(error)) {
+                        if (error.response?.status === 401) {
+                            localStorage.removeItem("token")
+                            PresetDialog("sessionExpired")
+                        } else if (error.code === "ERR_NETWORK") {
+                            PresetDialog("networkError")
+                        }
+                    } else {
+                        PresetDialog("unexpectedError")
+                    }
+                }
+            }
+        }
+
+        fetchUser()
+    }, [user, setUser, isClient, PresetDialog])
+
+    if (!isClient) return null
+
+    if (!user) {
+        const token = localStorage.getItem("token")
+        if (token) {
+            return <Loading />
+        } else {
+            window.location.href = "/"
+            return null
+        }
+    }
+
 
     return (
         <>
