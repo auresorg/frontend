@@ -1,6 +1,6 @@
 export const siteConfig = {
   name: "AURES",
-  url: "https://aures.online",
+  url: "https://aures.vishok.me",
   description: "Your professional identity",
   baseLinks: {
     overview: "/dashboard/overview",

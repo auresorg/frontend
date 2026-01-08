@@ -45,7 +45,7 @@ export const hasErrorInput = [
 ]
 export const host = process.env.NODE_ENV === 'development' ? "http://localhost:8000" : "https://aures-hwdcfmdzfhfrhna9.centralindia-01.azurewebsites.net";
 
-export const nextBase = process.env.NODE_ENV === 'development' ? "http://localhost:3000" : "https://aures.online";
+export const nextBase = process.env.NODE_ENV === 'development' ? "http://localhost:3000" : "https://aures.vishok.me";
 
 export const githubClientId = process.env.NODE_ENV === 'development' ? "Ov23liJo0fFiBs7gz61V" : "Ov23liRnBHFmSxtVRHVK";
 
