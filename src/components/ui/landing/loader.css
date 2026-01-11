@@ -1,0 +1,134 @@
+/**
+ Inspired by the Android Nougat Boot Animation, I was trying to replicate it however the method I chose (using 3 elements, with 4 pseudo elements) resulted in the rotation animation compounding for each child element.
+
+It turned out to look OK with 1px borders, however with 8-10px borders, there was too much spin.
+
+I need to go back and try again and just use separate circles.
+
+See also: https://codepen.io/dichiara/pen/MzJgga
+ */
+
+body {
+  background: #000;
+  color: #fff;
+  text-align: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: 22px;
+}
+a {
+  color: #fff;
+  text-decoration: underline;
+}
+h1 {
+  margin-bottom: 50px;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+}
+.info {
+  margin-top: 60px;
+}
+
+/*
+Colors:
+red: #CD3C2D
+white: #FBFFFB
+yellow: #E7EF4C
+pink: #E3A8DE
+green: #2A9146
+teal: #41C9C3
+blue: #3574C9
+*/
+.container {
+  margin: 0 auto; /* to center */
+  width: 200px;
+  height: 200px;
+  position: relative;
+}
+
+.loading,
+.loading::before,
+.loading::after,
+.inside,
+.inside::before,
+.inside::after,
+.inside b {
+  display: block;
+  top: 50%;
+  left: 50%;
+  margin-top: -50%;
+  margin-left: -50%;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 1px solid #FBFFFB;
+  border-radius: 100%;
+  -webkit-animation: rotate-center 1s linear infinite both;
+  animation: rotate-center 1s linear infinite both;
+}
+
+.loading::before,
+.loading::after,
+.inside::before,
+.inside::after {
+  content: '';
+}
+.loading::before { border-color: #CD3C2D; }
+.loading::after { border-color: #E7EF4C; }
+.inside { border-color: #E3A8DE; }
+.inside::before { border-color: #2A9146; }
+.inside::after { border-color: #41C9C3; }
+.inside b { border-color: #3574C9; }
+
+
+.loading { left: calc( 50% + 1px ); }
+.loading::before { left: calc( 50% + 15px ); }
+.loading::after { top: calc( 50% - 10px ); }
+.inside { left: calc( 50% - 1px ); }
+.inside::before { margin-top: calc( -50% - 10px ); }
+.inside::after { margin-top: calc( -50% - 5px ); }
+.inside b { top: calc( 50% + 5px ); }
+
+.loading::after { animation-delay: 0.1s; }
+.loading::before { animation-delay: 0.25s; }
+.inside { animation-delay: 0.5s; }
+.inside::before { animation-delay: 1s; }
+.inside::after { animation-delay: 2s; }
+.inside b { animation-delay: 2.5s; }
+
+
+@-webkit-keyframes rotate-center {
+  0% {
+    -webkit-transform: rotate(0);
+            transform: rotate(0);
+    width: 100%;
+    height: 100%;
+  }
+  50% {
+    width: 101%;
+    height: 99%;
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+    width: 100%;
+    height: 100%;
+  }
+}
+@keyframes rotate-center {
+  0% {
+    -webkit-transform: rotate(0);
+            transform: rotate(0);
+    width: 100%;
+    height: 100%;
+  }
+  50% {
+    width: 101%;
+    height: 99%;
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+    width: 100%;
+    height: 100%;
+  }
+}

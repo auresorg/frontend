@@ -1,20 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react'
 import logo from "@/assets/images/cover.png"
 import Image from 'next/image'
-import { githubClientId, nextBase } from '@/lib/utils'
+import Link from 'next/link';
 
 function Nav() {
     const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
     const [open, setOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
-    
+
     const [activeLink, setActiveLink] = useState("Home");
     const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0, opacity: 0 });
     const linksRef = useRef<HTMLDivElement>(null);
 
     const navLinks = [
         { name: "Home", href: "#s1" },
-        { name: "Features", href: "#s3" }, 
+        { name: "Features", href: "#s3" },
         { name: "The Aures Way", href: "#s4" }
     ];
 
@@ -25,10 +25,10 @@ function Nav() {
             setIsScrolled(window.scrollY > 10);
 
             let currentSection = "Home";
-            
+
             navLinks.forEach((link) => {
                 if (link.href === "#") return;
-                
+
                 const element = document.getElementById(link.href.substring(1));
                 if (element) {
                     if (window.scrollY >= (element.offsetTop - 180)) {
@@ -45,9 +45,9 @@ function Nav() {
         };
 
         window.addEventListener('scroll', handleScroll);
-        setTimeout(handleScroll, 100); 
+        setTimeout(handleScroll, 100);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []); 
+    }, []);
 
     useEffect(() => {
         if (!linksRef.current) return;
@@ -61,7 +61,7 @@ function Nav() {
                 opacity: 1
             });
         }
-    }, [activeLink, open]); 
+    }, [activeLink, open]);
 
     const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, linkName: string, href: string) => {
         setActiveLink(linkName);
@@ -99,15 +99,11 @@ function Nav() {
                 </div>
 
                 <div className="flex items-center gap-x-1 lg:gap-x-2 ms-auto py-1 lg:ps-6 lg:order-3 lg:col-span-3 lg:justify-end">
-                    <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium text-nowrap rounded-xl border border-transparent bg-blue-600 text-black hover:bg-blue-500 focus:outline-hidden focus:bg-blue-500 transition disabled:opacity-50 disabled:pointer-events-none text-white"
-                        onClick={() => {
-                            window.location.href = loggedIn ?
-                                "dashboard" :
-                                `https://github.com/login/oauth/authorize?client_id=${githubClientId}&redirect_uri=${encodeURIComponent(nextBase + "/login/callback")}&scope=read:user user:email`
-                        }}
-                    >
-                        {loggedIn ? "Dashboard" : "Get Started"}
-                    </button>
+                    <Link href={"/login"}>
+                        <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium text-nowrap rounded-xl border border-transparent bg-blue-600 hover:bg-blue-500 focus:outline-hidden focus:bg-blue-500 transition disabled:opacity-50 disabled:pointer-events-none text-white">
+                            {loggedIn ? "Dashboard" : "Get Started"}
+                        </button>
+                    </Link>
 
                     <div className="lg:hidden">
                         <button
@@ -122,30 +118,30 @@ function Nav() {
                 </div>
 
                 <div className={`overflow-hidden transition-[max-height] duration-300 ease-in-out basis-full grow ${open ? 'max-h-96' : 'max-h-0'} lg:overflow-visible lg:transition-none lg:max-h-none lg:block lg:order-2 lg:col-span-6`}>
-                    <div 
+                    <div
                         className="flex flex-col gap-y-4 gap-x-0 mt-5 lg:flex-row lg:justify-center lg:items-center lg:gap-y-0 lg:gap-x-7 lg:mt-0 relative"
-                        ref={linksRef} 
+                        ref={linksRef}
                     >
-                        <span 
+                        <span
                             className="hidden lg:block absolute bottom-0 h-1 bg-blue-400 rounded-full transition-all duration-300 ease-out z-0"
-                            style={{ 
-                                left: sliderStyle.left, 
+                            style={{
+                                left: sliderStyle.left,
                                 width: sliderStyle.width,
                                 opacity: sliderStyle.opacity,
                                 marginBottom: '-5px'
-                            }} 
+                            }}
                         />
 
                         {navLinks.map((link) => (
-                            <a 
+                            <a
                                 key={link.name}
                                 href={link.href}
-                                data-nav-link={link.name} 
+                                data-nav-link={link.name}
                                 onClick={(e) => handleNavClick(e, link.name, link.href)}
                                 className={`relative z-10 inline-block text-black focus:outline-hidden dark:text-white cursor-pointer transition-colors duration-200
-                                    ${activeLink === link.name 
-                                        ? "text-black dark:text-white font-medium" 
-                                        : "hover:text-gray-600 dark:hover:text-neutral-300" 
+                                    ${activeLink === link.name
+                                        ? "text-black dark:text-white font-medium"
+                                        : "hover:text-gray-600 dark:hover:text-neutral-300"
                                     }`}
                             >
                                 {link.name}
