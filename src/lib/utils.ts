@@ -225,6 +225,19 @@ export const postWithToken = async (url: string, data: Record<string, unknown>) 
     return await API.post(url, data);
 }
 
+export const getWithTokenNextEndpoint = async (url: string) => {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+
+  const fullUrl = `${nextBase}/api${url}`;
+  return await axios.get(fullUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+
 export const postWithTokenNextEndpoint = async (url: string, data: Record<string, unknown>) => {
     const token = localStorage.getItem('token');
     if (!token) return null;
