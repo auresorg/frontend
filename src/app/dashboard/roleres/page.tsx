@@ -61,7 +61,7 @@ export default function ResumeDashboard() {
 
     const copyLink = (role: string) => {
         const url = `${nextBase}/r/${user?.username}/${role}`;
-        navigator.clipboard.writeText(`https://${url}`);
+        navigator.clipboard.writeText(`${url}`);
         toast({
             title: 'Copied',
             description: 'Link copied to clipboard',
