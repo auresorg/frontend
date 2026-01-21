@@ -25,7 +25,7 @@ function Page() {
                 
                 setAllowLoader(true)
             }
-        }, 300)
+        }, 900)
 
         const pingUntilReady = () => {
             
