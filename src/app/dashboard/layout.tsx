@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from "react"
 
-import { cx, getWithToken } from "@/lib/utils"
+import { cx, getWithTokenRetry } from "@/lib/utils"
 
 import { Sidebar } from "@/components/ui/navigation/Sidebar"
 import { useUserStore } from "@/store/userStore"
@@ -35,7 +35,7 @@ export default function Layout({
             if (!isClient) return
             if (localStorage.getItem('token') !== null && !user) {
                 try {
-                    const response = await getWithToken("/user")
+                    const response = await getWithTokenRetry("/user")
                     if (response && response.status === 200) {
                         response.data.skillCount = Object.keys(response.data.skills).length
                         setUser(response.data)
@@ -45,6 +45,8 @@ export default function Layout({
                         if (error.response?.status === 401) {
                             localStorage.removeItem("token")
                             PresetDialog("sessionExpired");
+                        } else if (error.response?.status === 502) {
+                            PresetDialog("badGateway");
                         } else if (error.code === "ERR_NETWORK") {
                             PresetDialog("networkError");
                         }

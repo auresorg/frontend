@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BaseAPI } from "@/lib/utils";
+import { postBaseWithRetry } from "@/lib/utils";
 import { isAxiosError } from "axios";
 import { useDialog } from "@/components/ui/dialog-service";
 import { useUserStore } from "@/store/userStore";
@@ -34,7 +34,7 @@ function GithubCallbackInner() {
             setLoading(true);
             const sendCode = async () => {
                 try {
-                    const response = await BaseAPI.post("/auth/github", { code });
+                    const response = await postBaseWithRetry("/auth/github", { code });
                     if (response.status === 200) {
                         const { token } = response.data;
                         localStorage.setItem("token", token);
@@ -107,6 +107,8 @@ function GithubCallbackInner() {
                                     onConfirm: () => { router.push("/"); },
                                     cancelText: "DONOT SHOW CANCEL",
                                 });
+                            } else if (err.response.status === 502) {
+                                PresetDialog("badGateway");
                             } else {
                                 showDialog({
                                     title: "Login Failed",

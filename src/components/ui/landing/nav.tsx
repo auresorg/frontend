@@ -100,7 +100,7 @@ function Nav() {
                 </div>
 
                 <div className="flex items-center gap-x-1 lg:gap-x-2 ms-auto py-1 lg:ps-6 lg:order-3 lg:col-span-3 lg:justify-end">
-                    <Link href={`https://github.com/login/oauth/authorize?client_id=${githubClientId}&redirect_uri=${encodeURIComponent(nextBase + "/login/callback")}&scope=read:user user:email`}>
+                    <Link href={loggedIn ? '/dashboard' : `https://github.com/login/oauth/authorize?client_id=${githubClientId}&redirect_uri=${encodeURIComponent(nextBase + "/login/callback")}&scope=read:user user:email`}>
                         <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium text-nowrap rounded-xl border border-transparent bg-blue-600 hover:bg-blue-500 focus:outline-hidden focus:bg-blue-500 transition disabled:opacity-50 disabled:pointer-events-none text-white">
                             {loggedIn ? "Dashboard" : "Get Started"}
                         </button>

@@ -2,46 +2,46 @@
 
 import clsx, { type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 
 
 export function cx(...args: ClassValue[]) {
-  return twMerge(clsx(...args))
+    return twMerge(clsx(...args))
 }
 
 export function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(' ');
+    return classes.filter(Boolean).join(' ');
 }
 
 // Tremor focusInput [v0.0.2]
 
 export const focusInput = [
-  // base
-  "focus:ring-2",
-  // ring color
-  "focus:ring-blue-200 dark:focus:ring-blue-700/30",
-  // border color
-  "focus:border-blue-500 dark:focus:border-blue-700",
+    // base
+    "focus:ring-2",
+    // ring color
+    "focus:ring-blue-200 dark:focus:ring-blue-700/30",
+    // border color
+    "focus:border-blue-500 dark:focus:border-blue-700",
 ]
 
 // Tremor Raw focusRing [v0.0.1]
 
 export const focusRing = [
-  // base
-  "outline outline-offset-2 outline-0 focus-visible:outline-2",
-  // outline color
-  "outline-blue-500 dark:outline-blue-500",
+    // base
+    "outline outline-offset-2 outline-0 focus-visible:outline-2",
+    // outline color
+    "outline-blue-500 dark:outline-blue-500",
 ]
 
 // Tremor Raw hasErrorInput [v0.0.1]
 
 export const hasErrorInput = [
-  // base
-  "ring-2",
-  // border color
-  "border-red-500 dark:border-red-700",
-  // ring color
-  "ring-red-200 dark:ring-red-700/30",
+    // base
+    "ring-2",
+    // border color
+    "border-red-500 dark:border-red-700",
+    // ring color
+    "ring-red-200 dark:ring-red-700/30",
 ]
 export const host = process.env.NODE_ENV === 'development' ? "http://localhost:8000" : "https://aures-hwdcfmdzfhfrhna9.centralindia-01.azurewebsites.net";
 
@@ -102,16 +102,16 @@ const attemptRefresh = async (): Promise<string> => {
     isRefreshing = true;
 
     try {
-        const { data } = await BaseAPI.post('/api/token/refresh', {}); 
+        const { data } = await BaseAPI.post('/api/token/refresh', {});
 
         localStorage.setItem('token', data.token);
-        
+
         processQueue(null, data.token);
         return data.token;
     } catch (err) {
         processQueue(err, null);
         localStorage.removeItem('token');
-        window.location.href = '/'; 
+        window.location.href = '/';
         throw err;
     } finally {
         isRefreshing = false;
@@ -226,15 +226,15 @@ export const postWithToken = async (url: string, data: Record<string, unknown>) 
 }
 
 export const getWithTokenNextEndpoint = async (url: string) => {
-  const token = localStorage.getItem('token');
-  if (!token) return null;
+    const token = localStorage.getItem('token');
+    if (!token) return null;
 
-  const fullUrl = `${nextBase}/api${url}`;
-  return await axios.get(fullUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+    const fullUrl = `${nextBase}/api${url}`;
+    return await axios.get(fullUrl, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
 };
 
 
@@ -270,3 +270,44 @@ export const roles = [
     { value: 'designer', label: 'Designer' },
     { value: 'blockchain', label: 'Blockchain Developer' }
 ]
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const postBaseWithRetry = async (url: string, data: Record<string, unknown>, retries = 3, delay = 1000) => {
+    let lastError;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            return await BaseAPI.post(url, data);
+        } catch (err) {
+            if (isAxiosError(err) && err.response?.status === 502 && attempt < retries) {
+                await sleep(delay);
+                continue;
+            }
+
+            lastError = err;
+            break;
+        }
+    }
+
+    throw lastError;
+};
+
+export const getWithTokenRetry = async (url: string, retries = 3, delay = 1000) => {
+    let lastError;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            return await getWithToken(url);
+        } catch (err) {
+            if (isAxiosError(err) && err.response?.status === 502 && attempt < retries) {
+                await sleep(delay);
+                continue;
+            }
+
+            lastError = err;
+            break;
+        }
+    }
+
+    throw lastError;
+};
