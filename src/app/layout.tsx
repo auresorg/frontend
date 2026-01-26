@@ -4,6 +4,7 @@ import "./globals.css";
 import { DialogProvider } from "@/components/ui/dialog-service";
 import { ThemeProvider } from "next-themes";
 import Script from "next/script";
+import Ping from "@/components/Ping";
 
 export const metadata: Metadata = {
     title: "Aures",
@@ -35,6 +36,7 @@ export default function RootLayout({
 
             </head>
             <body style={{ margin: 0, padding: 0 }} className="overflow-hidden hideScrollbar">
+                <Ping />
                 <ThemeProvider defaultTheme="light" disableTransitionOnChange attribute="class">
                     <DialogProvider>{children}</DialogProvider>
                 </ThemeProvider>
