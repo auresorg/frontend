@@ -111,7 +111,7 @@ export default function CusresDashboard() {
 
     const copyLink = (slug: string) => {
         const url = `${nextBase}/c/${slug}`;
-        navigator.clipboard.writeText(`https://${url}`);
+        navigator.clipboard.writeText(`${url}`);
         toast({
             title: 'Copied',
             description: 'Link copied to clipboard',
