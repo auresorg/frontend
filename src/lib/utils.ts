@@ -250,6 +250,24 @@ export const postWithTokenNextEndpoint = async (url: string, data: Record<string
     });
 }
 
+export const downloadWithTokenNextEndpoint = async (
+    url: string,
+    data: Record<string, unknown>
+) => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    const fullUrl = `${nextBase}/api${url}`;
+
+    return await axios.post(fullUrl, data, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+        responseType: "arraybuffer",
+    });
+};
+
+
 export const deleteWithToken = async (url: string) => {
     return await API.delete(url);
 }

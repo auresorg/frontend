@@ -15,7 +15,7 @@ import {
 import { Divider } from '@/components/Divider';
 import { Input } from '@/components/Input';
 import { Text } from '@/components/Text';
-import { getWithToken, postWithToken } from '@/lib/utils';
+import { downloadWithTokenNextEndpoint, getWithToken, postWithToken } from '@/lib/utils';
 import { usePresetDialog } from '@/lib/dialogs';
 import { isAxiosError } from 'axios';
 import { useAwardStore } from '@/store/awardStore';
@@ -298,7 +298,7 @@ export default function CustomResumeDialog() {
                         experience: experiences.length,
                     },
                 };
-                
+
                 addCusres(newCusres);
                 toast({ variant: 'success', title: 'Success', description: 'Custom resume created successfully!' });
                 setIsDialogOpen(false);
@@ -325,11 +325,62 @@ export default function CustomResumeDialog() {
         }
     };
 
-    const handleDownload = () => {
-        console.log('Downloading resume with slug:', slug);
-        console.log('Selected items:', selectedItems);
-        toast({ variant: 'info', title: 'Info', description: 'Download functionality is not implemented yet.' });
+    const handleDownload = async () => {
+        if (selectedItems.length === 0) {
+            toast({
+                variant: 'error',
+                title: 'Error',
+                description: 'Please select at least one item to include in the resume.',
+            });
+            return;
+        }
+
+        const projects = selectedItems
+            .filter(item => item.type === 'projects')
+            .map(item => item.id);
+
+        const certifications = selectedItems
+            .filter(item => item.type === 'certifications')
+            .map(item => item.id);
+
+        const awards = selectedItems
+            .filter(item => item.type === 'awards')
+            .map(item => item.id);
+
+        const experiences = selectedItems
+            .filter(item => item.type === 'experiences')
+            .map(item => item.id);
+
+        try {
+            const res = await downloadWithTokenNextEndpoint('/download', {
+                projects,
+                certifications,
+                awards,
+                experiences,
+            });
+
+            if (!res) return;
+
+            const blob = new Blob([res.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'resume.pdf';
+            document.body.appendChild(a);
+            a.click();
+
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch {
+            toast({
+                variant: 'error',
+                title: 'Error',
+                description: 'Failed to download resume. Please try again.',
+            });
+        }
     };
+
 
     // Load data in parallel when dialog opens
     useEffect(() => {
