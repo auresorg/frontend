@@ -130,7 +130,7 @@ export const useActivityStore = create<ActivityState>()(
 
                 try {
                     const response = await fetch(
-                        `https://alfa-leetcode-api.onrender.com/${leetcodeUsername}/solved`,
+                        `https://leetcodeapi-ilqz.onrender.com/${leetcodeUsername}/solved`,
                         {
                             headers: {
                                 'Accept': 'application/json',
