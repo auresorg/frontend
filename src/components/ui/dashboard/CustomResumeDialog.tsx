@@ -188,6 +188,8 @@ export default function CustomResumeDialog() {
     const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isDeploying, setIsDeploying] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     const PresetDialog = usePresetDialog();
     const { addCusres } = useCusresStore();
@@ -245,23 +247,31 @@ export default function CustomResumeDialog() {
     };
 
     const handleDeploy = async () => {
+        if (isDeploying || isDownloading) return;
+        
+        setIsDeploying(true);
+
         if (!slug.trim()) {
             toast({ variant: 'error', title: 'Error', description: 'Please enter a valid name for the resume.' });
+            setIsDeploying(false);
             return;
         }
 
         if (!/^[a-zA-Z0-9]+$/.test(slug.trim())) {
             toast({ variant: 'error', title: 'Error', description: 'Name can only contain alphanumeric characters.' });
+            setIsDeploying(false);
             return;
         }
 
         if (slug.length > 10) {
             toast({ variant: 'error', title: 'Error', description: 'Name cannot be more than 10 characters long.' });
+            setIsDeploying(false);
             return;
         }
 
         if (selectedItems.length === 0) {
             toast({ variant: 'error', title: 'Error', description: 'Please select at least one item to include in the resume.' });
+            setIsDeploying(false);
             return;
         }
 
@@ -322,16 +332,23 @@ export default function CustomResumeDialog() {
                 console.log("error");
                 toast({ variant: 'error', title: 'Error', description: 'An unexpected error occurred. Please try again later.' });
             }
+        } finally {
+            setIsDeploying(false);
         }
     };
 
     const handleDownload = async () => {
+        if (isDownloading || isDeploying) return;
+
+        setIsDownloading(true);
+
         if (selectedItems.length === 0) {
             toast({
                 variant: 'error',
                 title: 'Error',
                 description: 'Please select at least one item to include in the resume.',
             });
+            setIsDownloading(false);
             return;
         }
 
@@ -378,6 +395,8 @@ export default function CustomResumeDialog() {
                 title: 'Error',
                 description: 'Failed to download resume. Please try again.',
             });
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -526,15 +545,19 @@ export default function CustomResumeDialog() {
                                     variant="secondary"
                                     onClick={handleDeploy}
                                     className="flex items-center space-x-2"
+                                    disabled={isDeploying || isDownloading}
+                                    isLoading={isDeploying}
                                 >
-                                    <RiSendPlaneLine className="size-4" />
+                                    { !isDeploying && (<RiSendPlaneLine className="size-4" />)}
                                     <span>Deploy</span>
                                 </Button>
                                 <Button
                                     onClick={handleDownload}
                                     className="flex items-center space-x-2"
+                                    disabled={isDownloading || isDeploying}
+                                    isLoading={isDownloading}
                                 >
-                                    <RiDownloadLine className="size-4" />
+                                    { !isDownloading && (<RiDownloadLine className="size-4" />)}
                                     <span>Download</span>
                                 </Button>
                             </div>
