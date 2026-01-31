@@ -4,7 +4,7 @@ import { query } from "@/lib/db";
 import { rateLimit } from "@/lib/valkey";
 import { Award, Certification, Experience, Project } from "@/lib/types";
 
-const RESGEN_URL = "http://localhost:7071/api/cusresd";
+const RESGEN_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/cusresd";
 
 const ESCAPE_MAP: Record<string, string> = {
     "\\": "\\textbackslash",
