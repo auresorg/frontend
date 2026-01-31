@@ -26,7 +26,6 @@ function Footer() {
                     </a>
                     
                 </div>
-                {/* End Social Brands */}
             </div>
             {/* End Grid */}
         </footer>
