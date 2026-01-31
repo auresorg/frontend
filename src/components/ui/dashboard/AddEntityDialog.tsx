@@ -26,6 +26,8 @@ import { useProjectStore } from '@/store/projectStore';
 import { useExperienceStore } from '@/store/experienceStore';
 import { postWithTokenNextEndpoint } from '@/lib/utils';
 import { Award, Certification, Project, Experience } from '@/lib/types';
+import { Import } from 'lucide-react';
+import { toast } from '@/lib/useToast';
 
 interface AddEntityDialogProps {
     config: EntityConfig;
@@ -35,7 +37,8 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
     const [open, setOpen] = useState(false);
     const [ocrLoading, setOcrLoading] = useState(false);
     const [loadingMsg, setLoadingMsg] = useState("");
-    
+    const [githubLoading, setGithubLoading] = useState(false);
+
     const { user, editAwardCount, editCertCount, setUser, editSkills } = useUserStore();
     const { addAward } = useAwardStore();
     const { addCertificate } = useCertificateStore();
@@ -84,13 +87,13 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Transform tech field for projects
         const submitData: Record<string, unknown> = { ...formData };
         if (config.type === 'project' && submitData.tech) {
             submitData.tech = (submitData.tech as string).split(',').map(t => t.trim()).filter(t => t);
         }
-        
+
         // Handle optional endDate
         if (submitData.endDate === '') {
             delete submitData.endDate;
@@ -110,12 +113,12 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
             const imageUrl = URL.createObjectURL(file);
             const { data } = await Tesseract.recognize(imageUrl, 'eng');
             setLoadingMsg("Analyzing extracted text...");
-            
-            const response = await postWithTokenNextEndpoint("/scan", { 
-                certificate: data.text, 
-                type: config.type 
+
+            const response = await postWithTokenNextEndpoint("/scan", {
+                certificate: data.text,
+                type: config.type
             });
-            
+
             if (response && response.status === 200) {
                 setFormState(response.data);
             }
@@ -189,6 +192,7 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
         // Input with icon (repo, url)
         const showIcon = field.name === 'repo' || field.name === 'url';
         const Icon = field.name === 'repo' ? RiGitRepositoryFill : RiLinksLine;
+        const showGithubFetch = config.type === 'project' && field.name === 'repo' && formData.repo;
 
         return (
             <div key={field.name}>
@@ -196,8 +200,9 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
                     {label} {isRequired && <span style={{ color: "red" }}>*</span>}
                 </Label>
                 {showIcon ? (
-                    <div className="mt-2 flex items-center">
-                        <Icon className="mr-2 size-4 text-gray-400 shrink-0" />
+                    <div className="mt-2 flex items-center gap-2">
+                        <Icon className="size-4 text-gray-400 shrink-0" />
+
                         <Input
                             type={field.type}
                             id={field.name}
@@ -208,8 +213,23 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
                             className="flex-1 min-w-0"
                             required={isRequired}
                             hasError={error === field.name}
-                            disabled={disabled}
+                            disabled={disabled || githubLoading}
                         />
+
+                        {showGithubFetch && (
+                            <button
+                                type="button"
+                                onClick={handleGithubPrefill}
+                                disabled={githubLoading}
+                                className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                            >
+                                {githubLoading ? (
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                                ) : (
+                                    <Import className="size-5" />
+                                )}
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <Input
@@ -234,9 +254,115 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
         );
     };
 
+    const handleGithubPrefill = async () => {
+        try {
+            setGithubLoading(true);
+            setOcrLoading(true);
+
+            const repoInput = formData.repo.trim();
+
+            let owner = '';
+            let repo = '';
+
+            if (repoInput.includes('github.com')) {
+                const parts = repoInput.replace('https://github.com/', '').split('/');
+                owner = parts[0];
+                repo = parts[1];
+            } else {
+                const parts = repoInput.split('/');
+                owner = parts[0];
+                repo = parts[1];
+            }
+
+            if (!owner || !repo) {
+                toast({
+                    title: 'Invalid GitHub repository',
+                    description: 'Please enter a valid public GitHub repo URL or owner/repo.',
+                    variant: 'error',
+                    duration: 5000,
+                });
+                return;
+            }
+
+            const stripToPlainText = (text: string) => {
+                return text
+                    // remove HTML tags
+                    .replace(/<[^>]*>/g, ' ')
+                    // remove markdown images
+                    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
+                    // remove markdown links but keep text
+                    .replace(/\[([^\]]*)]\([^)]*\)/g, '$1')
+                    // remove markdown symbols
+                    .replace(/[#>*_`~\-]+/g, ' ')
+                    // remove extra punctuation blocks
+                    .replace(/\|+/g, ' ')
+                    // normalize whitespace
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            };
+
+            // Repo metadata
+            const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+            const repoData = await repoRes.json();
+
+            //if repo failed
+            if (!repoRes.ok) {
+                toast({
+                    title: 'Repository not found or inaccessible',
+                    description: 'Please check the repo URL and ensure it is public.',
+                    variant: 'error',
+                    duration: 5000,
+                });
+                return;
+            }
+
+            // Languages
+            const langRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`);
+            const langData = await langRes.json();
+            const tech = Object.keys(langData).join(', ');
+
+            let description = stripToPlainText(repoData.description || '');
+
+            if (user?.plan === 'pro') {
+                const readmeRes = await fetch(
+                    `https://api.github.com/repos/${owner}/${repo}/readme`,
+                    {
+                        headers: { Accept: 'application/vnd.github.raw' },
+                    }
+                );
+
+                if (readmeRes.ok) {
+                    const readmeText = await readmeRes.text();
+                    const cleanReadme = stripToPlainText(readmeText);
+                    description = [description, cleanReadme].filter(Boolean).join(' \n');
+                }
+            }
+
+            setFormState({
+                ...formData,
+                name: repoData.name,
+                description,
+                tech,
+                url: repoData.html_url,
+                startDate: repoData.created_at?.slice(0, 10),
+            });
+        } catch (err) {
+            console.error('GitHub prefill failed:', err);
+            toast({
+                title: 'GitHub fetch failed',
+                description: 'Could not fetch repository data. Please check the repo URL and try again.',
+                variant: 'error',
+                duration: 5000,
+            });
+        } finally {
+            setGithubLoading(false);
+            setOcrLoading(false);
+        }
+    };
+
     // Group date fields for side-by-side layout
-    const hasDateRange = config.formFields.some(f => f.name === 'startDate') && 
-                         config.formFields.some(f => f.name === 'endDate');
+    const hasDateRange = config.formFields.some(f => f.name === 'startDate') &&
+        config.formFields.some(f => f.name === 'endDate');
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -260,13 +386,19 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
                 <form onSubmit={handleSubmit}>
                     <div className="flex flex-col max-h-[80vh] overflow-y-auto">
                         <div className="flex-1 space-y-4 p-4 sm:p-6 sm:space-y-6">
-                            {config.formFields.map((field) => {
-                                // Skip date fields if rendering as range
-                                if (hasDateRange && (field.name === 'startDate' || field.name === 'endDate')) {
-                                    return null;
-                                }
-                                return renderField(field);
-                            })}
+                            {/* Repo first */}
+                            {config.formFields
+                                .filter(f => f.name === 'repo')
+                                .map(renderField)}
+                            {config.formFields
+                                .filter(f => f.name !== 'repo')
+                                .map((field) => {
+                                    // Skip date fields if rendering as range
+                                    if (hasDateRange && (field.name === 'startDate' || field.name === 'endDate')) {
+                                        return null;
+                                    }
+                                    return renderField(field);
+                                })}
 
                             {/* Date Range */}
                             {hasDateRange && (
@@ -304,21 +436,21 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
                         {/* Actions */}
                         <div className="flex justify-between border-t border-gray-200 p-4 sm:p-6 dark:border-gray-900">
                             <DialogClose asChild>
-                                <Button 
-                                    type="button" 
-                                    variant="secondary" 
-                                    className="text-sm" 
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    className="text-sm"
                                     onClick={resetForm}
-                                    disabled={ocrLoading}
+                                    disabled={ocrLoading || githubLoading}
                                 >
                                     Cancel
                                 </Button>
                             </DialogClose>
-                            <Button 
-                                type="submit" 
-                                className="text-sm" 
-                                isLoading={submitting || ocrLoading}
-                                disabled={ocrLoading}
+                            <Button
+                                type="submit"
+                                className="text-sm"
+                                isLoading={submitting || ocrLoading || githubLoading}
+                                disabled={ocrLoading || githubLoading}
                             >
                                 {config.addButtonText}
                             </Button>
