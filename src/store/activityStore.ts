@@ -185,7 +185,7 @@ export const useActivityStore = create<ActivityState>()(
                 try {
                     // Using the LeetCode submissions API
                     const response = await fetch(
-                        `https://alfa-leetcode-api.onrender.com/${leetcodeUsername}/calendar`,
+                        `https://leetcodeapi-ilqz.onrender.com/${leetcodeUsername}/calendar`,
                         {
                             headers: {
                                 'Accept': 'application/json',
