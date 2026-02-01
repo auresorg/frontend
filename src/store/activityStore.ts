@@ -130,7 +130,7 @@ export const useActivityStore = create<ActivityState>()(
 
                 try {
                     const response = await fetch(
-                        `https://leetcodeapi-ilqz.onrender.com/${leetcodeUsername}/solved`,
+                        `https://leetcodeapi-oing.onrender.com/${leetcodeUsername}/solved`,
                         {
                             headers: {
                                 'Accept': 'application/json',
@@ -185,7 +185,7 @@ export const useActivityStore = create<ActivityState>()(
                 try {
                     // Using the LeetCode submissions API
                     const response = await fetch(
-                        `https://leetcodeapi-ilqz.onrender.com/${leetcodeUsername}/calendar`,
+                        `https://leetcodeapi-oing.onrender.com/${leetcodeUsername}/calendar`,
                         {
                             headers: {
                                 'Accept': 'application/json',
