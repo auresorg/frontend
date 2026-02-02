@@ -196,7 +196,7 @@ export async function POST(request: Request) {
 
         if (decoded && typeof decoded === "object" && "plan" in decoded) {
 
-            const limited = await rateLimit(request, { mode: "user", identifier: decoded["id"] as string, route: "create", limit: 2, windowSec: 10 });
+            const limited = await rateLimit(request, { mode: "user", identifier: decoded["id"] as string, route: "create", limit: 20, windowSec: 10 });
             if (limited) return limited;
 
             const body = await request.json();
