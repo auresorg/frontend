@@ -128,8 +128,8 @@ async function fetchCusresData(slug: string) {
           (SELECT row_to_json(e)
            FROM (
              SELECT id, school, degree, field,
-                    start_date AS "startDate",
-                    end_date AS "endDate",
+                    start_date::text AS "startDate",
+                    end_date::text AS "endDate",
                     grade, description
              FROM education
              WHERE user_id = $1
@@ -138,7 +138,12 @@ async function fetchCusresData(slug: string) {
 
           (SELECT json_agg(p ORDER BY ord)
            FROM unnest($2::int[]) WITH ORDINALITY AS sel(id, ord)
-           JOIN project p ON p.id = sel.id
+           JOIN (
+                SELECT id, name, repo, url, tech, description,
+                        start_date AS "startDate",
+                        end_date AS "endDate"
+                FROM project
+           ) p ON p.id = sel.id
           ) AS projects,
 
           (SELECT json_agg(c ORDER BY ord)
@@ -148,7 +153,12 @@ async function fetchCusresData(slug: string) {
 
           (SELECT json_agg(e2 ORDER BY ord)
            FROM unnest($4::int[]) WITH ORDINALITY AS sel(id, ord)
-           JOIN experience e2 ON e2.id = sel.id
+           JOIN (
+                SELECT id, title, company, description,
+                        start_date AS "startDate",
+                        end_date AS "endDate"
+                FROM experience
+            ) e2 ON e2.id = sel.id
           ) AS experiences,
 
           (SELECT json_agg(a ORDER BY ord)
@@ -182,15 +192,15 @@ async function fetchCusresData(slug: string) {
             leetcode: safe(base.leetcode),
             education: data.education
                 ? {
-                      name: safe(data.education.school),
-                      location: "",
-                      degree: safe(data.education.degree),
-                      course: safe(data.education.field),
-                      from: safe(data.education.startDate),
-                      to: safe(data.education.endDate),
-                      score: safe(data.education.grade),
-                      maxscore: "",
-                  }
+                    name: safe(data.education.school),
+                    location: "",
+                    degree: safe(data.education.degree),
+                    course: safe(data.education.field),
+                    from: safe(data.education.startDate),
+                    to: safe(data.education.endDate),
+                    score: safe(data.education.grade),
+                    maxscore: "",
+                }
                 : null,
             courses: (data.certifications || []).map((c) => ({
                 title: safe(c.title),
@@ -259,7 +269,7 @@ export async function GET(
         if (
             cache[0]?.compiled_at &&
             new Date(cache[0].compiled_at) >=
-                new Date(cache[0].data_updated_at)
+            new Date(cache[0].data_updated_at)
         ) {
             const signed = await signUrl(`${slug}.pdf`);
             return NextResponse.redirect(signed, { status: 307 });
@@ -295,7 +305,7 @@ export async function GET(
                 WHERE id = $1
                 `,
                 [data.cusresId]
-            ).catch(() => {})
+            ).catch(() => { })
         );
 
         return new NextResponse(pdf, {
@@ -306,7 +316,7 @@ export async function GET(
                 "Cache-Control": "public, max-age=12",
             },
         });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         return NextResponse.json(
             { error: "Internal Error", message: e?.message },
