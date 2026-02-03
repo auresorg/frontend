@@ -116,24 +116,36 @@ export async function POST(req: Request) {
                 (
                     SELECT json_agg(p ORDER BY sel.ord)
                     FROM unnest($2::int[]) WITH ORDINALITY sel(id, ord)
-                    JOIN project p
-                      ON p.id = sel.id
-                     AND p.user_id = b.id
+                    JOIN (
+                        SELECT id, user_id, name, repo, url, tech, description,
+                            start_date AS "startDate",
+                            end_date   AS "endDate"
+                        FROM project
+                    ) p
+                    ON p.id = sel.id
+                    AND p.user_id = b.id
                 ) AS projects,
 
                 (
                     SELECT json_agg(c ORDER BY sel.ord)
                     FROM unnest($3::int[]) WITH ORDINALITY sel(id, ord)
-                    JOIN certification c
-                      ON c.id = sel.id
+                    JOIN (
+                        SELECT id, user_id, title, platform, description,
+                            completed_on AS "completedOn"
+                        FROM certification
+                    ) c ON c.id = sel.id
                      AND c.user_id = b.id
                 ) AS certifications,
 
                 (
                     SELECT json_agg(e ORDER BY sel.ord)
                     FROM unnest($4::int[]) WITH ORDINALITY sel(id, ord)
-                    JOIN experience e
-                      ON e.id = sel.id
+                    JOIN (
+                        SELECT id, user_id, title, company, description,
+                            start_date AS "startDate",
+                            end_date   AS "endDate"
+                        FROM experience
+                    ) e ON e.id = sel.id
                      AND e.user_id = b.id
                 ) AS experiences,
 
