@@ -1,0 +1,528 @@
+'use client'
+
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import type { EmployerContact } from '@prisma/client'
+
+interface Props {
+    data: EmployerContact
+    onClose: () => void
+    onSave: (data: EmployerContact) => void
+    errorMessage?: string
+    isSaving?: boolean
+}
+
+const COUNTRY_STATES: Record<string, string[]> = {
+    India: [
+        'Andhra Pradesh',
+        'Arunachal Pradesh',
+        'Assam',
+        'Bihar',
+        'Chhattisgarh',
+        'Goa',
+        'Gujarat',
+        'Haryana',
+        'Himachal Pradesh',
+        'Jharkhand',
+        'Karnataka',
+        'Kerala',
+        'Madhya Pradesh',
+        'Maharashtra',
+        'Manipur',
+        'Meghalaya',
+        'Mizoram',
+        'Nagaland',
+        'Odisha',
+        'Punjab',
+        'Rajasthan',
+        'Sikkim',
+        'Tamil Nadu',
+        'Telangana',
+        'Tripura',
+        'Uttar Pradesh',
+        'Uttarakhand',
+        'West Bengal',
+        // Union Territories
+        'Andaman and Nicobar Islands',
+        'Chandigarh',
+        'Dadra and Nagar Haveli and Daman and Diu',
+        'Delhi',
+        'Jammu and Kashmir',
+        'Ladakh',
+        'Lakshadweep',
+        'Puducherry'
+    ],
+
+    'United States': [
+        'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
+        'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana',
+        'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana',
+        'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina',
+        'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina',
+        'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
+        'Wisconsin', 'Wyoming', 'District of Columbia'
+    ],
+
+    'United Kingdom': [
+        'England', 'Scotland', 'Wales', 'Northern Ireland'
+    ],
+
+    Germany: [
+        'Baden-Württemberg', 'Bavaria', 'Berlin', 'Brandenburg', 'Bremen', 'Hamburg', 'Hesse',
+        'Lower Saxony', 'Mecklenburg-Vorpommern', 'North Rhine-Westphalia', 'Rhineland-Palatinate',
+        'Saarland', 'Saxony', 'Saxony-Anhalt', 'Schleswig-Holstein', 'Thuringia'
+    ],
+
+    Australia: [
+        'New South Wales', 'Victoria', 'Queensland', 'Western Australia', 'South Australia',
+        'Tasmania', 'Australian Capital Territory', 'Northern Territory'
+    ],
+
+    Singapore: [
+        'Singapore'
+    ],
+
+    Canada: [
+        'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador',
+        'Nova Scotia', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan',
+        // Territories
+        'Northwest Territories', 'Nunavut', 'Yukon'
+    ],
+
+    'United Arab Emirates': [
+        'Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'
+    ],
+
+    France: [
+        'Auvergne-Rhône-Alpes', 'Bourgogne-Franche-Comté', 'Brittany', 'Centre-Val de Loire',
+        'Corsica', 'Grand Est', 'Hauts-de-France', 'Île-de-France', 'Normandy', 'Nouvelle-Aquitaine',
+        'Occitanie', 'Pays de la Loire', 'Provence-Alpes-Côte d\'Azur',
+        // Overseas regions (commonly included)
+        'Guadeloupe', 'Martinique', 'French Guiana', 'Réunion', 'Mayotte'
+    ],
+
+    Brazil: [
+        'Acre', 'Alagoas', 'Amapá', 'Amazonas', 'Bahia', 'Ceará', 'Distrito Federal', 'Espírito Santo',
+        'Goiás', 'Maranhão', 'Mato Grosso', 'Mato Grosso do Sul', 'Minas Gerais', 'Pará', 'Paraíba',
+        'Paraná', 'Pernambuco', 'Piauí', 'Rio de Janeiro', 'Rio Grande do Norte', 'Rio Grande do Sul',
+        'Rondônia', 'Roraima', 'Santa Catarina', 'São Paulo', 'Sergipe', 'Tocantins'
+    ],
+
+    Mexico: [
+        'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche', 'Chiapas', 'Chihuahua',
+        'Coahuila', 'Colima', 'Durango', 'Guanajuato', 'Guerrero', 'Hidalgo', 'Jalisco', 'México (State of)',
+        'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca', 'Puebla', 'Querétaro', 'Quintana Roo',
+        'San Luis Potosí', 'Sinaloa', 'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán', 'Zacatecas', 'Ciudad de México'
+    ],
+
+    China: [
+        'Anhui', 'Beijing', 'Chongqing', 'Fujian', 'Gansu', 'Guangdong', 'Guangxi', 'Guizhou', 'Hainan',
+        'Hebei', 'Heilongjiang', 'Henan', 'Hubei', 'Hunan', 'Jiangsu', 'Jiangxi', 'Jilin', 'Liaoning',
+        'Inner Mongolia', 'Ningxia', 'Qinghai', 'Shaanxi', 'Shandong', 'Shanghai', 'Shanxi', 'Sichuan',
+        'Tianjin', 'Tibet', 'Xinjiang', 'Yunnan', 'Zhejiang', 'Hong Kong', 'Macau'
+    ],
+
+    Japan: [
+        'Aichi', 'Akita', 'Aomori', 'Chiba', 'Ehime', 'Fukui', 'Fukuoka', 'Fukushima', 'Gifu', 'Gunma',
+        'Hiroshima', 'Hokkaido', 'Hyōgo', 'Ibaraki', 'Ishikawa', 'Iwate', 'Kagawa', 'Kagoshima',
+        'Kanagawa', 'Kōchi', 'Kumamoto', 'Kyōto', 'Mie', 'Miyagi', 'Miyazaki', 'Nagano', 'Nagasaki',
+        'Nara', 'Niigata', 'Ōita', 'Okayama', 'Okinawa', 'Osaka', 'Saga', 'Saitama', 'Shiga', 'Shimane',
+        'Shizuoka', 'Tochigi', 'Tokushima', 'Tokyo', 'Tottori', 'Toyama', 'Wakayama', 'Yamagata', 'Yamaguchi', 'Yamanashi'
+    ],
+
+    Russia: [
+        // Russia has many federal subjects; common ones listed here. Add more on request.
+        'Adygea', 'Altai Republic', 'Altai Krai', 'Amur Oblast', 'Arkhangelsk Oblast', 'Astrakhan Oblast',
+        'Bashkortostan', 'Belgorod Oblast', 'Bryansk Oblast', 'Chechnya', 'Chelyabinsk Oblast', 'Chukotka Autonomous Okrug',
+        'Chuvashia', 'Dagestan', 'Irkutsk Oblast', 'Ivanovo Oblast', 'Kabardino-Balkaria', 'Kaliningrad Oblast',
+        'Kaluga Oblast', 'Kemerovo Oblast', 'Khabarovsk Krai', 'Khakassia', 'Khanty-Mansi Autonomous Okrug',
+        'Kirov Oblast', 'Komi', 'Kostroma Oblast', 'Krasnodar Krai', 'Krasnoyarsk Krai', 'Kurgan Oblast', 'Kursk Oblast',
+        'Leningrad Oblast', 'Lipetsk Oblast', 'Magadan Oblast', 'Moscow', 'Moscow Oblast', 'Murmansk Oblast',
+        'Nizhny Novgorod Oblast', 'Novgorod Oblast', 'Novosibirsk Oblast', 'Omsk Oblast', 'Orel Oblast', 'Orenburg Oblast',
+        'Penza Oblast', 'Perm Krai', 'Pskov Oblast', 'Rostov Oblast', 'Ryazan Oblast', 'Sakha (Yakutia)', 'Sakhalin Oblast',
+        'Samara Oblast', 'Saratov Oblast', 'Smolensk Oblast', 'Stavropol Krai', 'Sverdlovsk Oblast', 'Tambov Oblast',
+        'Tatarstan', 'Tomsk Oblast', 'Tula Oblast', 'Tver Oblast', 'Tyumen Oblast', 'Udmurtia', 'Ulyanovsk Oblast',
+        'Vladimir Oblast', 'Volgograd Oblast', 'Vologda Oblast', 'Voronezh Oblast', 'Yaroslavl Oblast', 'Zabaykalsky Krai'
+    ],
+
+    'South Africa': [
+        'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 'Limpopo', 'Mpumalanga', 'Northern Cape', 'North West', 'Western Cape'
+    ],
+
+    Argentina: [
+        'Buenos Aires Province', 'Catamarca', 'Chaco', 'Chubut', 'Córdoba', 'Corrientes', 'Entre Ríos', 'Formosa',
+        'Jujuy', 'La Pampa', 'La Rioja', 'Mendoza', 'Misiones', 'Neuquén', 'Río Negro', 'Salta',
+        'San Juan', 'San Luis', 'Santa Cruz', 'Santa Fe', 'Santiago del Estero', 'Tierra del Fuego', 'City of Buenos Aires'
+    ],
+
+    Indonesia: [
+        'Aceh', 'Bali', 'Banten', 'Bengkulu', 'Central Java', 'Central Kalimantan', 'Central Sulawesi', 'East Java', 'East Kalimantan',
+        'East Nusa Tenggara', 'Gorontalo', 'Jakarta', 'Jambi', 'Lampung', 'Maluku', 'North Kalimantan', 'North Maluku', 'North Sulawesi',
+        'North Sumatra', 'Papua', 'Riau', 'Riau Islands', 'South Kalimantan', 'South Sulawesi', 'South Sumatra', 'Southeast Sulawesi',
+        'West Java', 'West Kalimantan', 'West Nusa Tenggara', 'West Papua', 'West Sulawesi', 'West Sumatra', 'Yogyakarta'
+    ],
+
+    Pakistan: [
+        'Balochistan', 'Gilgit-Baltistan', 'Islamabad Capital Territory', 'Khyber Pakhtunkhwa', 'Punjab', 'Sindh'
+    ],
+
+    Bangladesh: [
+        'Barisal', 'Chittagong', 'Dhaka', 'Khulna', 'Mymensingh', 'Rajshahi', 'Rangpur', 'Sylhet'
+    ],
+
+    Nigeria: [
+        'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu',
+        'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo',
+        'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara', 'Federal Capital Territory'
+    ],
+
+    SaudiArabia: [
+        'Al Bahah', 'Al Jawf', 'Al Madinah', 'Al Qassim', 'Al Riyadh', 'Asir', 'Eastern Province', 'Ha\'il', 'Jizan', 'Makkah', 'Najran', 'Tabuk', 'Northern Borders'
+    ],
+
+    'United Arab Emirates (short)': [
+        'Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'
+    ],
+
+    Netherlands: [
+        'Drenthe', 'Flevoland', 'Friesland', 'Gelderland', 'Groningen', 'Limburg', 'North Brabant', 'North Holland', 'Overijssel', 'South Holland', 'Utrecht', 'Zeeland'
+    ],
+
+    Spain: [
+        'Andalusia', 'Aragon', 'Asturias', 'Balearic Islands', 'Basque Country', 'Canary Islands', 'Cantabria', 'Castile and León',
+        'Castilla–La Mancha', 'Catalonia', 'Extremadura', 'Galicia', 'La Rioja', 'Community of Madrid', 'Region of Murcia', 'Navarre', 'Valencian Community',
+        'Ceuta', 'Melilla'
+    ],
+
+    Italy: [
+        'Abruzzo', 'Aosta Valley', 'Apulia', 'Basilicata', 'Calabria', 'Campania', 'Emilia-Romagna', 'Friuli Venezia Giulia', 'Lazio',
+        'Liguria', 'Lombardy', 'Marche', 'Molise', 'Piedmont', 'Sardinia', 'Sicily', 'Trentino-Alto Adige/Südtirol', 'Umbria', 'Valle d\'Aosta', 'Veneto'
+    ],
+
+    Turkey: [
+        // Turkey has 81 provinces; including major ones and the rest grouped. Add full list on request.
+        'Adana', 'Adiyaman', 'Afyonkarahisar', 'Ağrı', 'Aksaray', 'Amasya', 'Ankara', 'Antalya', 'Aydın', 'Balıkesir',
+        'Bilecik', 'Bingöl', 'Bitlis', 'Bolu', 'Burdur', 'Bursa', 'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır',
+        'Edirne', 'Elazığ', 'Erzincan', 'Erzurum', 'Eskişehir', 'Gaziantep', 'Giresun', 'Gümüşhane', 'Hakkâri', 'Hatay', 'Isparta',
+        'Mersin', 'İstanbul', 'İzmir', 'Kars', 'Kastamonu', 'Kayseri', 'Kırıkkale', 'Kırklareli', 'Kırşehir', 'Kilis', 'Kocaeli',
+        'Konya', 'Kütahya', 'Malatya', 'Manisa', 'Mardin', 'Muğla', 'Muş', 'Nevşehir', 'Niğde', 'Ordu', 'Osmaniye', 'Rize', 'Sakarya',
+        'Samsun', 'Siirt', 'Sinop', 'Sivas', 'Şırnak', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Uşak', 'Van', 'Yalova', 'Zonguldak'
+    ],
+
+    'South Korea': [
+        'Busan', 'Daegu', 'Daejeon', 'Gwangju', 'Incheon', 'Sejong', 'Seoul', 'Ulsan',
+        'Gyeonggi-do', 'Gangwon-do', 'Chungcheongbuk-do', 'Chungcheongnam-do', 'Jeollabuk-do', 'Jeollanam-do', 'Gyeongsangbuk-do', 'Gyeongsangnam-do', 'Jeju-do'
+    ],
+
+    'New Zealand': [
+        'Auckland', 'Bay of Plenty', 'Canterbury', 'Gisborne', 'Hawke\'s Bay', 'Manawatū-Whanganui', 'Marlborough', 'Nelson', 'Northland', 'Otago', 'Southland', 'Taranaki', 'Tasman', 'Waikato', 'Wellington', 'West Coast'
+    ],
+
+    'Switzerland': [
+        'Aargau', 'Appenzell Ausserrhoden', 'Appenzell Innerrhoden', 'Basel-Landschaft', 'Basel-Stadt', 'Bern', 'Fribourg', 'Geneva',
+        'Glarus', 'Graubünden', 'Jura', 'Lucerne', 'Neuchâtel', 'Nidwalden', 'Obwalden', 'Schaffhausen', 'Schwyz', 'Solothurn', 'St. Gallen', 'Thurgau', 'Ticino', 'Uri', 'Valais', 'Vaud', 'Zug', 'Zurich'
+    ],
+
+    'Belgium': [
+        'Flanders', 'Wallonia', 'Brussels-Capital Region'
+    ],
+
+    'Sweden': [
+        'Blekinge', 'Dalarna', 'Gotland', 'Gävleborg', 'Halland', 'Jämtland', 'Jönköping', 'Kalmar', 'Kronoberg', 'Norrbotten', 'Skåne', 'Stockholm', 'Södermanland', 'Uppsala', 'Värmland', 'Västerbotten', 'Västernorrland', 'Västmanland', 'Västra Götaland', 'Örebro', 'Östergötland'
+    ],
+
+    'Poland': [
+        'Greater Poland', 'Kuyavian-Pomeranian', 'Lesser Poland', 'Łódź', 'Lower Silesian', 'Lublin', 'Lubusz',
+        'Masovian', 'Opole', 'Podlaskie', 'Pomeranian', 'Silesian', 'Subcarpathian', 'Świętokrzyskie', 'Warmian-Masurian', 'West Pomeranian'
+    ]
+};
+
+const COUNTRIES = Object.keys(COUNTRY_STATES)
+
+const NATURE_OPTIONS = ['IT', 'Health', 'Banking', 'Software', 'Education', 'Others']
+
+export default function EmployerDialog({ data, onClose, onSave, errorMessage, isSaving }: Props) {
+    const [form, setForm] = useState<EmployerContact>(data)
+
+    useEffect(() => {
+        setForm(data)
+    }, [data])
+
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [onClose])
+
+    const stateOptions = useMemo(() => COUNTRY_STATES[form.country] ?? [], [form.country])
+
+    function update<K extends keyof EmployerContact>(key: K, value: EmployerContact[K]) {
+        setForm(prev => ({ ...prev, [key]: value }))
+    }
+
+    function handleCountryChange(value: string) {
+        setForm(prev => ({ ...prev, country: value, state: '' }))
+    }
+
+    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+        onSave(form)
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center px-3 py-6 z-50">
+            <div className="bg-white border border-gray-200 w-full sm:max-w-xl rounded-2xl p-6 max-h-[92vh] overflow-y-auto shadow-2xl">
+
+                <div className="flex items-start justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                        {form.id === 0 ? 'Add Employer Contact' : 'Edit Employer Contact'}
+                    </h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-sm">Close</button>
+                </div>
+
+                {errorMessage && (
+                    <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {errorMessage}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4 text-sm text-gray-900">
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <label className="flex flex-col gap-1">
+                            <span className="text-gray-500">Title</span>
+                            <select
+                                required
+                                value={form.title}
+                                onChange={e => update('title', e.target.value)}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-gray-500 focus:outline-none"
+                            >
+                                {['Mr', 'Ms', 'Dr', 'Prof'].map(v => (
+                                    <option key={v} value={v}>{v}</option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label className="flex flex-col gap-1">
+                            <span className="text-gray-500">First name</span>
+                            <input
+                                required
+                                placeholder="First name"
+                                value={form.firstName}
+                                onChange={e => update('firstName', e.target.value)}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
+                            />
+                        </label>
+
+                        <label className="flex flex-col gap-1">
+                            <span className="text-gray-500">Last name</span>
+                            <input
+                                required
+                                placeholder="Last name"
+                                value={form.lastName}
+                                onChange={e => update('lastName', e.target.value)}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
+                            />
+                        </label>
+                    </div>
+
+                    <label className="flex flex-col gap-1">
+                        <span className="text-gray-500">Position</span>
+                        <input
+                            required
+                            placeholder="Position"
+                            value={form.position}
+                            onChange={e => update('position', e.target.value)}
+                            className="rounded-lg border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
+                        />
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label className="flex flex-col gap-1">
+                            <span className="text-gray-500">Nature of industry</span>
+                            <select
+                                required
+                                value={form.nature}
+                                onChange={e => update('nature', e.target.value)}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-gray-500 focus:outline-none"
+                            >
+                                {NATURE_OPTIONS.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label className="flex flex-col gap-1">
+                            <span className="text-gray-500">Company name</span>
+                            <input
+                                required
+                                placeholder="Company"
+                                value={form.companyName}
+                                onChange={e => update('companyName', e.target.value)}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
+                            />
+                        </label>
+                    </div>
+
+                    <label className="flex flex-col gap-1">
+                        <span className="text-gray-500">City</span>
+                        <input
+                            required
+                            placeholder="City"
+                            value={form.city}
+                            onChange={e => update('city', e.target.value)}
+                            className="rounded-lg border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
+                        />
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label className="flex flex-col gap-1">
+                            <span className="text-gray-500">Country</span>
+                            <select
+                                required
+                                value={form.country}
+                                onChange={e => handleCountryChange(e.target.value)}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-gray-500 focus:outline-none"
+                            >
+                                <option value="" disabled>Select country</option>
+                                {COUNTRIES.map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label className="flex flex-col gap-1">
+                            <span className="text-gray-500">State / Region</span>
+                            <select
+                                required
+                                value={form.state}
+                                onChange={e => update('state', e.target.value)}
+                                disabled={!form.country}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-gray-500 focus:outline-none disabled:bg-gray-100"
+                            >
+                                <option value="" disabled>{form.country ? 'Select state' : 'Select country first'}</option>
+                                {stateOptions.map(s => (
+                                    <option key={s} value={s}>{s}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
+
+                    <label className="flex flex-col gap-1">
+                        <span className="text-gray-500">Official email</span>
+                        <input
+                            required
+                            type="email"
+                            placeholder="name@company.com"
+                            value={form.officialEmail}
+                            onChange={e => update('officialEmail', e.target.value)}
+                            className="rounded-lg border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
+                        />
+                    </label>
+
+                    <label className="flex flex-col gap-1">
+                        <span className="text-gray-500">Personal email (optional)</span>
+                        <input
+                            type="email"
+                            placeholder="personal@email.com"
+                            value={form.personalEmail ?? ''}
+                            onChange={e => update('personalEmail', e.target.value || null)}
+                            className="rounded-lg border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
+                        />
+                    </label>
+
+                    <label className="flex flex-col gap-1">
+                        <span className="text-gray-500">Phone (optional)</span>
+                        <input
+                            type="tel"
+                            placeholder="Phone number"
+                            value={form.phone ?? ''}
+                            onChange={e => update('phone', e.target.value || null)}
+                            className="rounded-lg border border-gray-300 bg-white px-3 py-2 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
+                        />
+                    </label>
+
+                    <div className="space-y-2">
+                        <p className="text-xs text-gray-500">Hunter (verification)</p>
+                        <div className="flex gap-4">
+                            {['Valid', 'Accept all'].map(v => (
+                                <label key={v} className="flex items-center gap-2 text-gray-800">
+                                    <input
+                                        required
+                                        type="radio"
+                                        name="hunterStatus"
+                                        checked={form.hunterStatus === v}
+                                        onChange={() => update('hunterStatus', v)}
+                                    />
+                                    {v}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <p className="text-xs text-gray-500">Peer type</p>
+                        <div className="flex gap-4">
+                            {['National', 'International'].map(v => (
+                                <label key={v} className="flex items-center gap-2 text-gray-800">
+                                    <input
+                                        required
+                                        type="radio"
+                                        name="peerType"
+                                        checked={form.peerType === v}
+                                        onChange={() => update('peerType', v)}
+                                    />
+                                    {v}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <p className="text-xs text-gray-500">Priority</p>
+                        <div className="flex flex-wrap gap-4">
+                            {[{ label: 'Vital', value: 'Vital', cls: 'text-red-700' }, { label: 'Essential', value: 'Essential', cls: 'text-amber-700' }, { label: 'Desirable', value: 'Desirable', cls: 'text-green-700' }].map(item => (
+                                <label key={item.value} className={`flex items-center gap-2 ${item.cls}`}>
+                                    <input
+                                        required
+                                        type="radio"
+                                        name="priority"
+                                        checked={form.priority === item.value}
+                                        onChange={() => update('priority', item.value as EmployerContact['priority'])}
+                                    />
+                                    {item.label}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-2">
+                        {errorMessage && (
+                            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                {errorMessage}
+                            </div>
+                        )}
+                        <div className="flex gap-3">
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="flex-1 bg-gray-900 text-white rounded-md py-2 text-sm font-semibold shadow-sm hover:bg-gray-800 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {isSaving ? 'Saving…' : 'Save'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex-1 border border-gray-300 rounded-md py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    )
+}
