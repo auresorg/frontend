@@ -140,7 +140,8 @@ Return exactly this JSON schema:
     "lastName": string,
     "linkedin": string,
     "portfolio": string,
-    "leetcode": string
+    "leetcode": string,
+    "phoneNumber": string
   },
   "projects": Project[],
   "education": Education[],

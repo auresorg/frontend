@@ -162,6 +162,7 @@ export async function GET(
                 'linkedin', u.linkedin,
                 'portfolio', u.portfolio,
                 'leetcode', u.leetcode,
+                'phoneNumber', u.phonenumber
                 'education', CASE WHEN u.showeducation IS TRUE THEN (
                     SELECT row_to_json(ed)
                     FROM (

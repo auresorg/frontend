@@ -29,7 +29,7 @@ export default function Settings() {
     });
 
     const [accountData, setAccountData] = useState({
-        firstName: '', lastName: '', username: '', email: '', linkedin: '', portfolio: '', leetcode: ''
+        firstName: '', lastName: '', username: '', email: '', linkedin: '', portfolio: '', leetcode: '', phoneNumber: ''
     });
 
     const [privacyData, setPrivacyData] = useState({
@@ -101,7 +101,7 @@ export default function Settings() {
         if (user) {
             setAccountData({
                 firstName: user.firstName || '', lastName: user.lastName || '', username: user.username || '',
-                email: user.email || '', linkedin: user.linkedin || '', portfolio: user.portfolio || '', leetcode: user.leetcode || ''
+                email: user.email || '', linkedin: user.linkedin || '', portfolio: user.portfolio || '', leetcode: user.leetcode || '', phoneNumber: user.phoneNumber || ''
             });
         }
     }, [user]);
@@ -139,7 +139,7 @@ export default function Settings() {
         try {
             const payload = {
                 firstName: accountData.firstName, lastName: accountData.lastName, linkedin: accountData.linkedin,
-                portfolio: accountData.portfolio, leetcode: accountData.leetcode
+                portfolio: accountData.portfolio, leetcode: accountData.leetcode, phoneNumber: accountData.phoneNumber
             };
             const res = await putWithToken('/user', payload);
             if (res?.status === 200) {
@@ -202,7 +202,7 @@ export default function Settings() {
                                 disabled={user ? (
                                     user.firstName === accountData.firstName && user.lastName === accountData.lastName &&
                                     (user.linkedin || '') === accountData.linkedin && (user.portfolio || '') === accountData.portfolio &&
-                                    (user.leetcode || '') === accountData.leetcode
+                                    (user.leetcode || '') === accountData.leetcode && (user.phoneNumber || '') === accountData.phoneNumber
                                 ) : true}
                             >Update</Button>
                         </div>
@@ -240,7 +240,10 @@ export default function Settings() {
                                 <div className="space-y-4">
                                     <div><Label htmlFor="apo">Portfolio URL</Label><Input id="apo" type="url" value={accountData.portfolio} onChange={(e) => setAccountData({ ...accountData, portfolio: e.target.value })} placeholder="https://..." className="mt-2" /></div>
                                     <div><Label htmlFor="ali">LinkedIn URL</Label><Input id="ali" type="url" value={accountData.linkedin} onChange={(e) => setAccountData({ ...accountData, linkedin: e.target.value })} placeholder="https://linkedin.com/..." className="mt-2" /></div>
-                                    <div><Label htmlFor="alc">Leetcode Username</Label><Input id="alc" value={accountData.leetcode} onChange={(e) => setAccountData({ ...accountData, leetcode: e.target.value })} placeholder="mvishok" className="mt-2" /></div>
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <div><Label htmlFor="alc">Leetcode Username</Label><Input id="alc" value={accountData.leetcode} onChange={(e) => setAccountData({ ...accountData, leetcode: e.target.value })} placeholder="mvishok" className="mt-2" /></div>
+                                        <div><Label htmlFor="aph">Phone Number</Label><Input id="aph" type="tel" value={accountData.phoneNumber} onChange={(e) => setAccountData({ ...accountData, phoneNumber: e.target.value })} placeholder="+91 9876543210" className="mt-2" /></div>
+                                    </div>
                                 </div>
                                 <div className="pb-2"></div>
                             </div>
