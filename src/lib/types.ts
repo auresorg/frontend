@@ -9,6 +9,7 @@ export type User = {
     linkedin?: string;
     portfolio?: string;
     leetcode?: string;
+    phoneNumber?: string;
     skills: Record<string, number>;
     projectsCount: number;
     certCount: number;

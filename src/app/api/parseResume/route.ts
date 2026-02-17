@@ -14,40 +14,64 @@ No explanations. No markdown. No comments.
 
 Rules:
 - Do NOT generate IDs
-- Omit missing fields
+- Omit fields that are unknown or missing EXCEPT for startDate and date.
 - Use ISO date strings where possible
+- startDate is MANDATORY. If missing from text, you MUST estimate a reasonable one.
+- date is MANDATORY. If missing from text, you MUST estimate a reasonable one.
 - Arrays must exist (empty if none)
 - Do NOT hallucinate
-
-Dates (CRITICAL - must follow exactly):
-
-- All dates MUST be strings.
-- Allowed formats ONLY:
-
-1. Full date (preferred when available):
-   "YYYY-MM-DD"
-   Example: "2024-09-15"
-
-2. Month-level date (when day is unknown):
-   "YYYY-MM"
-   Example: "2024-09"
-
-3. Year-only date (ONLY if nothing else is known):
-   "YYYY"
-   Example: "2023"
-
-4. Ongoing roles:
+- Ongoing roles:
    - Use null ONLY where explicitly allowed (e.g. Experience.endDate)
    - Do NOT use empty strings for ongoing roles.
-
-Rules:
-- Do NOT invent days or months.
+- IF NO START DATE IS PROVIDED, ASSUME A DATE WITH REASONABLE DURATION THAT ITEM COULD HAVE TAKEN, AND A START DATE THAT LOGICALLY PRECEDES ANY PROVIDED END DATE.
 - If only month+year exists, use "YYYY-MM".
 - If only year exists, use "YYYY".
 - Never use natural language dates.
 - Never use formats like "Sep 2024", "09/2024", "2024/09".
+- If NO start date is provided, ASSUME
 
-Structure of Projects:
+Classification rules (STRICT – MUST FOLLOW):
+
+1) Each item must appear in EXACTLY ONE section.
+   Never duplicate an item across projects, certifications, awards, or experience.
+
+2) Awards:
+   - Competitive achievements (won, winner, prize, rank, first, second, third, medal).
+   - Hackathon wins, expo prizes, competition results.
+   - If an item includes prize/rank language → it MUST be an Award.
+   - Awards must NOT appear in certifications.
+   - Type of award can either be "first", 
+
+3) Certifications:
+   - Formal credentials issued by recognized institutions, platforms, or companies.
+   - Must represent course completion or official certification.
+   - Events, expos, competitions, and participation without credential must NOT be certifications.
+
+4) Experience:
+   - Internships, jobs, freelance, contract work.
+   - Any role where work was performed for an organization.
+   - Internships must ALWAYS be classified as Experience, never Certification.
+
+5) Projects:
+   - Personal, academic, or independent technical builds.
+   - GitHub repos or self-developed systems not tied to employment classification.
+
+6) If an item qualifies for multiple sections, use this precedence order:
+   Award > Experience > Project > Certification
+
+7) Never invent section membership.
+   If uncertain, choose the single most semantically accurate section.
+
+Field rules (STRICT):
+
+- Omit fields that are unknown, except for startDate and date which must be estimated if missing
+- Do NOT output empty strings.
+- Do NOT fabricate platform, issuer, type, url, or grade.
+- repo is MANDATORY for all Projects. 
+- If no repo is found, GENERATE one using the format: "<username>/project-name"
+- NEVER return null for the repo field.
+
+Structures:
 
 Project {
     name: string;
@@ -74,7 +98,7 @@ Certification {
     title: string;
     platform: string;
     description: string;
-    role: '' | 'fullstack' | 'backend' | 'frontend' | 'devops' | 'mobile' | 'aiml' | 'product' | 'qa' | 'designer' | 'blockchain';
+    role: 'fullstack' | 'backend' | 'frontend' | 'devops' | 'mobile' | 'aiml' | 'product' | 'qa' | 'designer' | 'blockchain';
     url: string;
     completedOn: string;
 };
@@ -105,7 +129,8 @@ Return exactly this JSON schema:
     "lastName": string,
     "linkedin": string,
     "portfolio": string,
-    "leetcode": string
+    "leetcode": string,
+    "phoneNumber": string
   },
   "projects": Project[],
   "education": Education[],
@@ -158,9 +183,18 @@ If none apply, set format to "None".
 
 Infer the **single most relevant technical role** based strictly on the skills and work demonstrated (not the label of the item) for EACH item
 
+Role inference rules (STRICT):
+
+- If both backend and frontend technologies are present, classify as fullstack.
+- If database access (SQL, JDBC, ORM, server, API, backend frameworks) is present, prefer backend unless strong frontend-only signals exist.
+- Desktop UI frameworks (e.g., Java Swing) combined with database connectivity must be classified as fullstack.
+- IoT + cloud/server connectivity must be classified as backend.
+- AI/ML tools (e.g., Gemini AI, ML models) must be classified as aiml.
+- Do NOT downgrade an explicitly provided role unless clearly incorrect.
+- If original role is provided and consistent with tech stack, preserve it.
+
 Allowed roles:
 ["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]
-
 
 Do not generate multiple versions.
 Do not explain your reasoning.
@@ -272,7 +306,6 @@ export async function POST(req: NextRequest) {
         } = parsedResume
 
         /* ----------- STEP 2: BULK AI ENHANCEMENT ------------ */
-
         projects = await bulkEnhance(
             BULK_WITH_ROLE_PROMPT,
             projects,

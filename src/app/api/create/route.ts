@@ -38,6 +38,17 @@ If none cleanly apply, set format to "None".
 
 Infer the **single most relevant technical role** based strictly on the skills and work demonstrated (not the label of the item).
 
+
+Role inference rules (STRICT):
+
+- If both backend and frontend technologies are present, classify as fullstack.
+- If database access (SQL, JDBC, ORM, server, API, backend frameworks) is present, prefer backend unless strong frontend-only signals exist.
+- Desktop UI frameworks (e.g., Java Swing) combined with database connectivity must be classified as fullstack.
+- IoT + cloud/server connectivity must be classified as backend.
+- AI/ML tools (e.g., Gemini AI, ML models) must be classified as aiml.
+- Do NOT downgrade an explicitly provided role unless clearly incorrect.
+- If original role is provided and consistent with tech stack, preserve it.
+
 Allowed roles:
 ["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]
 
