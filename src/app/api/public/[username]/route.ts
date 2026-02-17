@@ -156,31 +156,31 @@ export async function GET(
 
     if (requestedFields.has("profile")) {
         jsonParts.push(`
-            'profile', json_build_object(
-                'firstName', u.firstname,
-                'lastName', u.lastname,
-                'linkedin', u.linkedin,
-                'portfolio', u.portfolio,
-                'leetcode', u.leetcode,
-                'phoneNumber', u.phonenumber
-                'education', CASE WHEN u.showeducation IS TRUE THEN (
-                    SELECT row_to_json(ed)
-                    FROM (
-                        SELECT
-                            e.school,
-                            e.degree,
-                            e.field,
-                            e.start_date AS "startDate",
-                            e.end_date AS "endDate",
-                            e.grade,
-                            ${SQL_CLEAN("e.description")} AS description
-                        FROM education e
-                        WHERE e.user_id = u.id
-                        LIMIT 1
-                    ) ed
-                ) ELSE NULL END
-            )
-        `);
+        'profile', json_build_object(
+            'firstName', u.firstname,
+            'lastName', u.lastname,
+            'linkedin', u.linkedin,
+            'portfolio', u.portfolio,
+            'leetcode', u.leetcode,
+            'phoneNumber', u.phonenumber,
+            'education', CASE WHEN u.showeducation IS TRUE THEN (
+                SELECT row_to_json(ed)
+                FROM (
+                    SELECT
+                        e.school,
+                        e.degree,
+                        e.field,
+                        e.start_date AS "startDate",
+                        e.end_date AS "endDate",
+                        e.grade,
+                        ${SQL_CLEAN("e.description")} AS description
+                    FROM education e
+                    WHERE e.user_id = u.id
+                    LIMIT 1
+                ) ed
+            ) ELSE NULL END
+        )
+    `);
     }
 
     if (requestedFields.has("skills")) {
