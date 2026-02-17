@@ -14,37 +14,21 @@ No explanations. No markdown. No comments.
 
 Rules:
 - Do NOT generate IDs
-- Omit missing fields
+- Omit fields that are unknown or missing EXCEPT for startDate and date.
 - Use ISO date strings where possible
+- startDate is MANDATORY. If missing from text, you MUST estimate a reasonable one.
+- date is MANDATORY. If missing from text, you MUST estimate a reasonable one.
 - Arrays must exist (empty if none)
 - Do NOT hallucinate
-
-Dates (CRITICAL - must follow exactly):
-
-- All dates MUST be strings.
-- Allowed formats ONLY:
-
-1. Full date (preferred when available):
-   "YYYY-MM-DD"
-   Example: "2024-09-15"
-
-2. Month-level date (when day is unknown):
-   "YYYY-MM"
-   Example: "2024-09"
-
-3. Year-only date (ONLY if nothing else is known):
-   "YYYY"
-   Example: "2023"
-
-4. Ongoing roles:
+- Ongoing roles:
    - Use null ONLY where explicitly allowed (e.g. Experience.endDate)
    - Do NOT use empty strings for ongoing roles.
-
-Rules:
+- IF NO START DATE IS PROVIDED, ASSUME A DATE WITH REASONABLE DURATION THAT ITEM COULD HAVE TAKEN, AND A START DATE THAT LOGICALLY PRECEDES ANY PROVIDED END DATE.
 - If only month+year exists, use "YYYY-MM".
 - If only year exists, use "YYYY".
 - Never use natural language dates.
 - Never use formats like "Sep 2024", "09/2024", "2024/09".
+- If NO start date is provided, ASSUME
 
 Classification rules (STRICT – MUST FOLLOW):
 
@@ -56,6 +40,7 @@ Classification rules (STRICT – MUST FOLLOW):
    - Hackathon wins, expo prizes, competition results.
    - If an item includes prize/rank language → it MUST be an Award.
    - Awards must NOT appear in certifications.
+   - Type of award can either be "first", 
 
 3) Certifications:
    - Formal credentials issued by recognized institutions, platforms, or companies.
@@ -79,8 +64,12 @@ Classification rules (STRICT – MUST FOLLOW):
 
 Field rules (STRICT):
 
-- Omit fields that are unknown. Do NOT output empty strings.
+- Omit fields that are unknown, except for startDate and date which must be estimated if missing
+- Do NOT output empty strings.
 - Do NOT fabricate platform, issuer, type, url, or grade.
+- repo is MANDATORY for all Projects. 
+- If no repo is found, GENERATE one using the format: "<username>/project-name"
+- NEVER return null for the repo field.
 
 Structures:
 
