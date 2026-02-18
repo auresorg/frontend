@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 
     const decoded = verify(token, publicKey, { algorithms: ["RS256"] })
 
-    if (!decoded || typeof decoded !== "object" || decoded["id"] !== 1 || decoded["id"] !== 3) {
+    if (!decoded || typeof decoded !== "object" || (decoded["id"] !== 1 && decoded["id"] !== 3)) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
     }
 
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
     const decoded = verify(token, publicKey, { algorithms: ["RS256"] })
 
-    if (!decoded || typeof decoded !== "object" || decoded["id"] !== 1 || decoded["id"] !== 3) {
+    if (!decoded || typeof decoded !== "object" || (decoded["id"] !== 1 && decoded["id"] !== 3)) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
     }
 
