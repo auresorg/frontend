@@ -215,6 +215,7 @@ export const ENTITY_CONFIGS: Record<EntityType, EntityConfig> = {
             { key: 'name', label: 'Project Name' },
             { key: 'repo', label: 'Repository' },
             { key: 'startDate', label: 'Start Date' },
+            { key: 'role', label: 'Role' },
         ],
     },
     experience: {
