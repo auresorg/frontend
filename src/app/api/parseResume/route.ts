@@ -30,7 +30,7 @@ Rules:
 - Never use formats like "Sep 2024", "09/2024", "2024/09".
 - If NO start date is provided, ASSUME
 
-Classification rules (STRICT – MUST FOLLOW):
+Classification rules (STRICT - MUST FOLLOW):
 
 1) Each item must appear in EXACTLY ONE section.
    Never duplicate an item across projects, certifications, awards, or experience.
@@ -286,7 +286,7 @@ export async function POST(req: NextRequest) {
             response_format: { type: "json_object" },
             messages: [
                 { role: "system", content: SYSTEM_PROMPT + "The Github Username is: " + username },
-                { role: "user", content: text },
+                { role: "user", content: text.replace(/\u0000/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') },
             ],
         })
 
