@@ -25,7 +25,12 @@ Rules for the bullet:
 - Focus on accomplishments, not responsibilities
 - Outcomes do NOT need to be external; internal results like validation, certification, prototypes, risk reduction, learning, or readiness are valid
 - Prefer specific results (passed testing, enabled next phase, reduced risk, informed decisions, created IP, validated assumptions)
-- Quantify only when it adds meaning; do not force numbers
+- Quantification is mandatory.
+- Every bullet MUST include at least one measurable numeric impact (%, time saved, performance improvement, scale, volume, latency reduction, accuracy gain, cost reduction, user growth, throughput, etc.).
+- If a number is explicitly mentioned in the input, use it.
+- If no numeric impact is provided, infer a realistic and conservative quantified outcome based on the described work.
+- You must not skip quantification under any circumstance.
+- The impact must describe improvement, scale, or measurable change — not just a count of tasks.
 - Do NOT include names, titles, issuers, platforms, companies, or project names
 - Avoid fluff, generic claims, or vague responsibility statements
 
@@ -87,7 +92,12 @@ Rules for the bullet:
 - Focus on accomplishments, not responsibilities
 - Outcomes do NOT need to be external; internal results like validation, certification, prototypes, risk reduction, learning, or readiness are valid
 - Prefer specific results (passed testing, enabled next phase, reduced risk, informed decisions, created IP, validated assumptions)
-- Quantify only when it adds meaning; do not force numbers
+- Quantification is mandatory.
+- Every bullet MUST include at least one measurable numeric impact (%, time saved, performance improvement, scale, volume, latency reduction, accuracy gain, cost reduction, user growth, throughput, etc.).
+- If a number is explicitly mentioned in the input, use it.
+- If no numeric impact is provided, infer a realistic and conservative quantified outcome based on the described work.
+- You must not skip quantification under any circumstance.
+- The impact must describe improvement, scale, or measurable change — not just a count of tasks.
 - Do NOT include names, titles, issuers, platforms, companies, or project names
 - Avoid fluff, generic claims, or vague responsibility statements
 

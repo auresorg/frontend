@@ -47,17 +47,17 @@ export default function EntityTable({ config }: EntityTableProps) {
     const projectStore = useProjectStore();
     const experienceStore = useExperienceStore();
 
-    const entities = 
+    const entities =
         config.type === 'award' ? awardStore.awards :
-        config.type === 'certification' ? certificateStore.certificates :
-        config.type === 'project' ? projectStore.projects :
-        experienceStore.experiences;
+            config.type === 'certification' ? certificateStore.certificates :
+                config.type === 'project' ? projectStore.projects :
+                    experienceStore.experiences;
 
-    const hasLoaded = 
+    const hasLoaded =
         config.type === 'award' ? awardStore.hasLoaded :
-        config.type === 'certification' ? certificateStore.hasLoaded :
-        config.type === 'project' ? projectStore.hasLoaded :
-        experienceStore.hasLoaded;
+            config.type === 'certification' ? certificateStore.hasLoaded :
+                config.type === 'project' ? projectStore.hasLoaded :
+                    experienceStore.hasLoaded;
 
     useEffect(() => {
         setIsClient(true);
@@ -222,23 +222,32 @@ export default function EntityTable({ config }: EntityTableProps) {
 
     const renderCellValue = (entity: Entity, columnKey: string) => {
         const value = (entity as Record<string, unknown>)[columnKey];
-        
+
+        if (columnKey === 'repo' && typeof value === 'string') {
+            const parts = value.split('/');
+            return parts[1] || parts[0];
+        }
+
+        if (columnKey === 'role' && typeof value === 'string') {
+            return value.charAt(0).toUpperCase() + value.slice(1);
+        }
+
         // Format dates
         if (columnKey.includes('Date') || columnKey === 'date' || columnKey === 'completedOn') {
             return value ? formatDate(value as string) : '';
         }
-        
+
         // Format arrays (like tech)
         if (Array.isArray(value)) {
             return value.join(', ');
         }
-        
+
         return String(value || '');
     };
 
     const getEntityName = (entity: Entity): string => {
-        return (entity as Record<string, unknown>).title as string || 
-               (entity as Record<string, unknown>).name as string || '';
+        return (entity as Record<string, unknown>).title as string ||
+            (entity as Record<string, unknown>).name as string || '';
     };
 
     return (
@@ -261,11 +270,14 @@ export default function EntityTable({ config }: EntityTableProps) {
             <div className="mt-6 hidden lg:block">
                 <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 190px)' }}>
                     <TableRoot>
-                        <Table>
+                        <Table className="w-full table-fixed">
                             <TableHead>
                                 <TableRow>
                                     {config.tableColumns.map((column) => (
-                                        <TableHeaderCell key={column.key}>
+                                        <TableHeaderCell
+                                            key={column.key}
+                                            className={column.key === "name" ? "w-[30%]" : column.key === "repo" ? "w-[35%]" : column.key === "role" ? "w-[10%]" : ""}
+                                        >
                                             {column.label}
                                         </TableHeaderCell>
                                     ))}
@@ -277,7 +289,7 @@ export default function EntityTable({ config }: EntityTableProps) {
                                     Array.from({ length: 3 }).map((_, i) => (
                                         <TableRow key={i}>
                                             {config.tableColumns.map((column, idx) => (
-                                                <TableCell 
+                                                <TableCell
                                                     key={column.key}
                                                     className={idx === 0 ? "font-medium text-gray-900 dark:text-gray-50" : ""}
                                                 >
@@ -301,14 +313,16 @@ export default function EntityTable({ config }: EntityTableProps) {
                                     entities.map((entity) => (
                                         <TableRow key={(entity as { id: string }).id}>
                                             {config.tableColumns.map((column, idx) => (
-                                                <TableCell 
+                                                <TableCell
                                                     key={column.key}
-                                                    className={idx === 0 ? "font-medium text-gray-900 dark:text-gray-50" : ""}
+                                                    className={`${idx === 0 ? "font-medium text-gray-900 dark:text-gray-50" : ""}`}
                                                 >
-                                                    {column.render 
-                                                        ? column.render((entity as Record<string, unknown>)[column.key], entity)
-                                                        : renderCellValue(entity, column.key)
-                                                    }
+                                                    <div className="truncate">
+                                                        {column.render
+                                                            ? column.render((entity as Record<string, unknown>)[column.key], entity)
+                                                            : renderCellValue(entity, column.key)
+                                                        }
+                                                    </div>
                                                 </TableCell>
                                             ))}
                                             <TableCell className="text-right">
@@ -443,7 +457,7 @@ export default function EntityTable({ config }: EntityTableProps) {
                                 {config.tableColumns.slice(1).map((column) => (
                                     <div key={column.key}>
                                         <span className="font-medium">{column.label}:</span>{' '}
-                                        {column.render 
+                                        {column.render
                                             ? column.render((entity as Record<string, unknown>)[column.key], entity)
                                             : renderCellValue(entity, column.key)
                                         }
@@ -454,7 +468,7 @@ export default function EntityTable({ config }: EntityTableProps) {
                     ))
                 )}
             </div>
-            
+
             {/* Edit Dialog */}
             <EditEntityDialog
                 config={config}
@@ -462,6 +476,6 @@ export default function EntityTable({ config }: EntityTableProps) {
                 onClose={() => setEditingEntity(null)}
                 onSave={handleSave}
             />
-        </div>
+        </div >
     );
 }

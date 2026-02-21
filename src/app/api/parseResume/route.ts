@@ -30,7 +30,7 @@ Rules:
 - Never use formats like "Sep 2024", "09/2024", "2024/09".
 - If NO start date is provided, ASSUME
 
-Classification rules (STRICT – MUST FOLLOW):
+Classification rules (STRICT - MUST FOLLOW):
 
 1) Each item must appear in EXACTLY ONE section.
    Never duplicate an item across projects, certifications, awards, or experience.
@@ -170,7 +170,12 @@ Rules for the bullet:
 - Focus on accomplishments, not responsibilities
 - Outcomes do NOT need to be external; internal results like validation, certification, prototypes, risk reduction, learning, or readiness are valid
 - Prefer specific results (passed testing, enabled next phase, reduced risk, informed decisions, created IP, validated assumptions)
-- Quantify only when it adds meaning; do not force numbers
+- Quantification is mandatory.
+- Every bullet MUST include at least one measurable numeric impact (%, time saved, performance improvement, scale, volume, latency reduction, accuracy gain, cost reduction, user growth, throughput, etc.).
+- If a number is explicitly mentioned in the input, use it.
+- If no numeric impact is provided, infer a realistic and conservative quantified outcome based on the described work.
+- You must not skip quantification under any circumstance.
+- The impact must describe improvement, scale, or measurable change — not just a count of tasks.
 - Do NOT include names, titles, issuers, platforms, companies, or project names
 - Avoid fluff, generic claims, or vague responsibility statements
 
@@ -286,7 +291,7 @@ export async function POST(req: NextRequest) {
             response_format: { type: "json_object" },
             messages: [
                 { role: "system", content: SYSTEM_PROMPT + "The Github Username is: " + username },
-                { role: "user", content: text },
+                { role: "user", content: text.replace(/\u0000/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') },
             ],
         })
 
