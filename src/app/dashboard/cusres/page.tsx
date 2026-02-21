@@ -189,7 +189,7 @@ export default function CusresDashboard() {
 
                 response = await fetch(url, {
                     method: 'POST',
-                    body: JSON.stringify({ slug }),
+                    body: JSON.stringify({ role: slug }),
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'

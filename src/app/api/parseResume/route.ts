@@ -29,6 +29,8 @@ Rules:
 - Never use natural language dates.
 - Never use formats like "Sep 2024", "09/2024", "2024/09".
 - If NO start date is provided, ASSUME
+- Ensure proper capitalization where applicable
+- Ensure flawless spelling and grammar.
 
 Classification rules (STRICT - MUST FOLLOW):
 
@@ -178,6 +180,12 @@ Rules for the bullet:
 - The impact must describe improvement, scale, or measurable change — not just a count of tasks.
 - Do NOT include names, titles, issuers, platforms, companies, or project names
 - Avoid fluff, generic claims, or vague responsibility statements
+- Avoid repeating the same starting verb across bullets in the same batch.
+- Vary action verbs naturally.
+- Use correct industry-standard capitalization for all technologies and frameworks.
+- Never output inconsistent casing.
+- Use consistent capitalization for technologies, tools, and proper nouns.
+- Ensure flawless spelling and grammar.
 
 Determine whether the EACH FINAL SENTENCE genuinely follows:
 - STAR (has clear situation/context + task/action + result)
@@ -237,8 +245,8 @@ async function bulkEnhance(
 
     const completion = await groq.chat.completions.create({
         model: "openai/gpt-oss-20b",
-        temperature: 0,
-        top_p: 1,
+        temperature: 0.4,
+        top_p: 0.9,
         max_completion_tokens: 4096,
         messages: [
             { role: "system", content: systemPrompt },
