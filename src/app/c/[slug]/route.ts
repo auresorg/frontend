@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/valkey";
 import { ERROR_HTML, INVALID_REQUEST_HTML, NOT_FOUND_HTML } from "@/lib/html";
+import { verify } from "jsonwebtoken";
+
+const TEX_FUNCTION_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/custex";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
 
@@ -86,6 +89,62 @@ export async function GET(
         return new NextResponse(ERROR_HTML, {
             status: 500,
             headers: { 'Content-Type': 'text/html' },
+        });
+    }
+}
+
+export async function POST(req: Request): Promise<NextResponse> {
+    try {
+        // --- AUTH CHECK (must be logged in) ---
+        const authHeader = req.headers.get("Authorization");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return new NextResponse(null, { status: 400 });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const publicKey = process.env.PUBLIC_KEY?.replace(/\\n/g, "\n");
+
+        if (!publicKey) {
+            return new NextResponse(ERROR_HTML, {
+                status: 500,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
+        verify(token, publicKey, { algorithms: ["RS256"] });
+
+        // --- FORWARD BODY TO TEX FUNCTION ---
+        const body = await req.json();
+
+        const texRes = await fetch(TEX_FUNCTION_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+        });
+
+        if (!texRes.ok) {
+            return new NextResponse(ERROR_HTML, {
+                status: 500,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
+        const texContent = await texRes.text();
+        const filename = texRes.headers.get("X-File-Name") || "resume.tex";
+
+        return new NextResponse(texContent, {
+            status: 200,
+            headers: {
+                "Content-Type": "application/x-tex",
+                "Content-Disposition": `attachment; filename="${filename}"`,
+            },
+        });
+    } catch {
+        return new NextResponse(ERROR_HTML, {
+            status: 500,
+            headers: { "Content-Type": "text/html" },
         });
     }
 }

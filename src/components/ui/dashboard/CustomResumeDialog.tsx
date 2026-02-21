@@ -248,7 +248,7 @@ export default function CustomResumeDialog() {
 
     const handleDeploy = async () => {
         if (isDeploying || isDownloading) return;
-        
+
         setIsDeploying(true);
 
         if (!slug.trim()) {
@@ -369,7 +369,8 @@ export default function CustomResumeDialog() {
             .map(item => item.id);
 
         try {
-            const res = await downloadWithTokenNextEndpoint('/download', {
+            const res = await downloadWithTokenNextEndpoint('/resume-direct', {
+                role: slug || 'custom',
                 projects,
                 certifications,
                 awards,
@@ -548,7 +549,7 @@ export default function CustomResumeDialog() {
                                     disabled={isDeploying || isDownloading}
                                     isLoading={isDeploying}
                                 >
-                                    { !isDeploying && (<RiSendPlaneLine className="size-4" />)}
+                                    {!isDeploying && (<RiSendPlaneLine className="size-4" />)}
                                     <span>Deploy</span>
                                 </Button>
                                 <Button
@@ -557,7 +558,7 @@ export default function CustomResumeDialog() {
                                     disabled={isDownloading || isDeploying}
                                     isLoading={isDownloading}
                                 >
-                                    { !isDownloading && (<RiDownloadLine className="size-4" />)}
+                                    {!isDownloading && (<RiDownloadLine className="size-4" />)}
                                     <span>Download</span>
                                 </Button>
                             </div>
