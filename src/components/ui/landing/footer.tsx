@@ -10,7 +10,7 @@ function Footer() {
                 {/* End Col */}
 
                 <div className="mt-3">
-                    <p className="text-gray-500 dark:text-neutral-500">A project by <a className="text-blue-600 decoration-2 hover:underline focus:outline-hidden focus:underline font-medium dark:text-blue-500" href="https://vishok.me/" target='blank'>Vishok Manikantan</a>.</p>
+                    <p className="text-gray-500 dark:text-neutral-500">Built for Developers <a className="text-blue-600 decoration-2 hover:underline focus:outline-hidden focus:underline font-medium dark:text-blue-500" href="https://aures.dev/" target='blank'>Powered by AI</a>.</p>
                     <p className="text-gray-500 dark:text-neutral-500">
                         © 2025 Aures.
                     </p>
