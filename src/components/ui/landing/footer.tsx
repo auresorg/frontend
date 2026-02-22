@@ -4,7 +4,7 @@ import React from 'react'
 function Footer() {
     return <>
         {/* ========== FOOTER ========== */}
-        <footer className="w-full max-w-[85rem] px-4 sm:px-6 lg:px-8 mx-auto">
+        <footer className="w-full max-w-340 px-4 sm:px-6 lg:px-8 mx-auto">
             {/* Grid */}
             <div className="text-center">
                 {/* End Col */}

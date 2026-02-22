@@ -12,6 +12,7 @@ import {
     RiArrowRightUpLine,
     RiBriefcaseLine,
     RiDeleteBinLine,
+    RiLoader2Fill,
 } from '@remixicon/react';
 
 import { Card } from '@/components/Card';
@@ -25,32 +26,32 @@ import CustomResumeDialog from '@/components/ui/dashboard/CustomResumeDialog';
 import { useCusresStore } from '@/store/cusresStore';
 
 interface CusresApiResponse {
-  slug: string;
-  compiledAt: string | null;
-  dataUpdatedAt: string | null;
-  stats: {
-    projects: number;
-    certificates: number;
-    awards: number;
-    experience: number;
-  };
+    slug: string;
+    compiledAt: string | null;
+    dataUpdatedAt: string | null;
+    stats: {
+        projects: number;
+        certificates: number;
+        awards: number;
+        experience: number;
+    };
 }
 
 interface CusresWithStats {
-  id: string;
-  slug: string;
-  dataUpdatedAt: string;
-  compiledAt: string | null;
-  projects: number[];
-  certifications: number[];
-  awards: number[];
-  experiences: number[];
-  stats: {
-    projects: number;
-    certificates: number;
-    awards: number;
-    experience: number;
-  };
+    id: string;
+    slug: string;
+    dataUpdatedAt: string;
+    compiledAt: string | null;
+    projects: number[];
+    certifications: number[];
+    awards: number[];
+    experiences: number[];
+    stats: {
+        projects: number;
+        certificates: number;
+        awards: number;
+        experience: number;
+    };
 }
 
 export default function CusresDashboard() {
@@ -68,10 +69,10 @@ export default function CusresDashboard() {
 
             try {
                 const response = await getWithToken('/cusres');
-                
+
                 if (response?.status === 200 && Array.isArray(response.data)) {
                     const apiData = response.data as CusresApiResponse[];
-                    
+
                     // Transform API data to match store format with stats
                     const transformedData: CusresWithStats[] = apiData.map(item => ({
                         id: item.slug, // Use slug as ID for frontend
@@ -84,10 +85,10 @@ export default function CusresDashboard() {
                         projects: [],
                         stats: item.stats
                     }));
-                    
+
                     // Sort by slug
                     transformedData.sort((a, b) => a.slug.localeCompare(b.slug));
-                    
+
                     setCusres(transformedData);
                     setHasLoaded(true);
                 } else {
@@ -128,12 +129,27 @@ export default function CusresDashboard() {
                 altText: "Confirm Delete",
                 label: "Delete",
                 onClick: async () => {
-                    confirmToast.dismiss();
+                    confirmToast.update({
+                        action: {
+                            altText: "Deleting",
+                            onClick: () => { },
+                            label: (
+                                <span className="pointer-events-none flex shrink-0 items-center justify-center gap-1.5">
+                                    <RiLoader2Fill
+                                        className="size-4 shrink-0 animate-spin"
+                                        aria-hidden="true"
+                                    />
+                                    Deleting...
+                                </span>
+                            ),
+                        },
+                    });
 
                     try {
                         const response = await deleteWithToken(`/cusres/${slug}`);
                         if (response && response.status === 204) {
-                            deleteCusres(slug); // Delete from store using slug as ID
+                            deleteCusres(slug);
+                            confirmToast.dismiss();
                             toast({
                                 title: "Resume Deleted",
                                 description: `The custom resume "${slug}" has been deleted.`,
@@ -164,7 +180,7 @@ export default function CusresDashboard() {
                             presetDialog("unexpectedError");
                         }
                     }
-                },
+                }
             },
         });
     };

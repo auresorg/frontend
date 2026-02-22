@@ -263,8 +263,8 @@ export default function CustomResumeDialog() {
             return;
         }
 
-        if (slug.length > 10) {
-            toast({ variant: 'error', title: 'Error', description: 'Name cannot be more than 10 characters long.' });
+        if (slug.length > 30) {
+            toast({ variant: 'error', title: 'Error', description: 'Name cannot be more than 30 characters long.' });
             setIsDeploying(false);
             return;
         }

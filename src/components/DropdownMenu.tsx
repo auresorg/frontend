@@ -40,7 +40,7 @@ const DropdownMenuSubMenuTrigger = React.forwardRef<
       // text color
       "text-gray-900 dark:text-gray-50",
       // disabled
-      "data-[disabled]:pointer-events-none data-[disabled]:text-gray-400 data-[disabled]:hover:bg-none dark:data-[disabled]:text-gray-600",
+      "data-disabled:pointer-events-none data-disabled:text-gray-400 data-disabled:hover:bg-none dark:data-disabled:text-gray-600",
       // focus
       "focus-visible:bg-gray-100 data-[state=open]:bg-gray-100 focus-visible:dark:bg-gray-900 data-[state=open]:dark:bg-gray-900",
       // hover
@@ -69,11 +69,11 @@ const DropdownMenuSubMenuContent = React.forwardRef<
       collisionPadding={collisionPadding}
       className={cx(
         // base
-        "relative z-50 overflow-hidden rounded-md border p-1 shadow-xl shadow-black/[2.5%]",
+        "relative z-50 overflow-hidden rounded-md border p-1 shadow-xl shadow-black/2.5",
         // widths
         "min-w-32",
         // heights
-        "max-h-[var(--radix-popper-available-height)]",
+        "max-h-(--radix-popper-available-height)",
         // background color
         "bg-white dark:bg-[#090E1A]",
         // text color
@@ -113,11 +113,11 @@ const DropdownMenuContent = React.forwardRef<
         ref={forwardedRef}
         className={cx(
           // base
-          "relative z-50 overflow-hidden rounded-md border p-1 shadow-xl shadow-black/[2.5%]",
+          "relative z-50 overflow-hidden rounded-md border p-1 shadow-xl shadow-black/2.5",
           // widths
           "min-w-48",
           // heights
-          "max-h-[var(--radix-popper-available-height)]",
+          "max-h-(--radix-popper-available-height)",
           // background color
           "bg-white dark:bg-[#090E1A]",
           // text color
@@ -156,7 +156,7 @@ const DropdownMenuItem = React.forwardRef<
       // text color
       "text-gray-900 dark:text-gray-50",
       // disabled
-      "data-[disabled]:pointer-events-none data-[disabled]:text-gray-400 data-[disabled]:hover:bg-none dark:data-[disabled]:text-gray-600",
+      "data-disabled:pointer-events-none data-disabled:text-gray-400 data-disabled:hover:bg-none dark:data-disabled:text-gray-600",
       // focus
       "focus-visible:bg-gray-100 focus-visible:dark:bg-gray-900",
       // hover
@@ -204,7 +204,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
         // text color
         "text-gray-900 dark:text-gray-50",
         // disabled
-        "data-[disabled]:pointer-events-none data-[disabled]:text-gray-400 data-[disabled]:hover:bg-none dark:data-[disabled]:text-gray-600",
+        "data-disabled:pointer-events-none data-disabled:text-gray-400 data-disabled:hover:bg-none dark:data-disabled:text-gray-600",
         // focus
         "focus-visible:bg-gray-100 focus-visible:dark:bg-gray-900",
         // hover
@@ -266,7 +266,7 @@ const DropdownMenuRadioItem = React.forwardRef<
         // text color
         "text-gray-900 dark:text-gray-50",
         // disabled
-        "data-[disabled]:pointer-events-none data-[disabled]:text-gray-400 data-[disabled]:hover:bg-none dark:data-[disabled]:text-gray-600",
+        "data-disabled:pointer-events-none data-disabled:text-gray-400 data-disabled:hover:bg-none dark:data-disabled:text-gray-600",
         // focus
         "focus-visible:bg-gray-100 focus-visible:dark:bg-gray-900",
         // hover
@@ -361,7 +361,7 @@ const DropdownMenuIconWrapper = ({
         // text color
         "text-gray-600 dark:text-gray-400",
         // disabled
-        "group-data-[disabled]/DropdownMenuItem:text-gray-400 group-data-[disabled]/DropdownMenuItem:dark:text-gray-700",
+        "group-data-disabled/DropdownMenuItem:text-gray-400 group-data-disabled/DropdownMenuItem:dark:text-gray-700",
         className,
       )}
       {...props}
