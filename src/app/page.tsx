@@ -14,6 +14,7 @@ import Comparision from "@/components/ui/landing/comparision";
 import Globe from "@/components/ui/landing/globe";
 import { BackgroundBeamsWithCollision } from "@/components/ui/landing/background";
 import Footer from "@/components/ui/landing/footer";
+import Faq from "@/components/ui/landing/faq";
 
 export default function Home() {
   return (
@@ -72,11 +73,15 @@ export default function Home() {
           <Comparision />
         </div>
 
-        <div id="s5" className="py-20 text-center">
+        <div id="s5" className="text-center">
           <Globe />
         </div>
 
-        <div id="s6">
+        <div id="s6" className="pb-10">
+            <Faq />
+        </div>
+
+        <div id="s7">
           <Footer />
         </div>
         
