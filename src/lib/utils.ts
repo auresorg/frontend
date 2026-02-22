@@ -110,7 +110,7 @@ const attemptRefresh = async (): Promise<string> => {
         return data.token;
     } catch (err) {
         processQueue(err, null);
-        localStorage.removeItem('token');
+        localStorage.clear();
         window.location.href = '/';
         throw err;
     } finally {
