@@ -24,8 +24,8 @@ Rules:
    - Use null ONLY where explicitly allowed (e.g. Experience.endDate)
    - Do NOT use empty strings for ongoing roles.
 - IF NO START DATE IS PROVIDED, ASSUME A DATE WITH REASONABLE DURATION THAT ITEM COULD HAVE TAKEN, AND A START DATE THAT LOGICALLY PRECEDES ANY PROVIDED END DATE.
-- If only month+year exists, use "YYYY-MM".
-- If only year exists, use "YYYY".
+- If only month+year exists, assume the first day of the month for startDate and the last day of the month for endDate.
+- If only year exists, assume January 1st for startDate and December 31st for endDate.
 - Never use natural language dates.
 - Never use formats like "Sep 2024", "09/2024", "2024/09".
 - If NO start date is provided, ASSUME
@@ -43,6 +43,7 @@ Classification rules (STRICT - MUST FOLLOW):
    - If an item includes prize/rank language → it MUST be an Award.
    - Awards must NOT appear in certifications.
    - Type of award can either be "first", 
+   - Date must always be of form "YYYY-MM-DD" or a reasonable approximation (e.g., "2024-09-01" for "September 2024").
 
 3) Certifications:
    - Formal credentials issued by recognized institutions, platforms, or companies.
@@ -72,6 +73,10 @@ Field rules (STRICT):
 - repo is MANDATORY for all Projects. 
 - If no repo is found, GENERATE one using the format: "<username>/project-name"
 - NEVER return null for the repo field.
+- issuer is MANDATORY for all Awards. 
+- If no issuer is found, idnetify the organization or event responsible for granting the award and use that as the issuer.
+- NEVER return null for the issuer field.
+
 
 Structures:
 
