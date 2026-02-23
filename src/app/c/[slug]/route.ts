@@ -3,7 +3,7 @@ import { rateLimit } from "@/lib/valkey";
 import { ERROR_HTML, INVALID_REQUEST_HTML, NOT_FOUND_HTML } from "@/lib/html";
 import { verify } from "jsonwebtoken";
 
-const TEX_FUNCTION_URL = "http://localhost:7071/api/custex";
+const TEX_FUNCTION_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/custex";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
 
