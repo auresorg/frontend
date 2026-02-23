@@ -3,7 +3,7 @@ import { rateLimit } from "@/lib/valkey";
 import { ERROR_HTML, INVALID_REQUEST_HTML, NOT_FOUND_HTML } from "@/lib/html";
 import { verify } from "jsonwebtoken";
 
-const TEX_FUNCTION_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/custex";
+const TEX_FUNCTION_URL = "http://localhost:7071/api/custex";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
 
@@ -95,7 +95,7 @@ export async function GET(
 
 export async function POST(req: Request): Promise<NextResponse> {
     try {
-        // --- AUTH CHECK (must be logged in) ---
+        // --- AUTH CHECK ---
         const authHeader = req.headers.get("Authorization");
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return new NextResponse(null, { status: 400 });
@@ -111,20 +111,41 @@ export async function POST(req: Request): Promise<NextResponse> {
             });
         }
 
-        verify(token, publicKey, { algorithms: ["RS256"] });
+        const decoded = verify(token, publicKey, { algorithms: ["RS256"] });
 
-        // --- FORWARD BODY TO TEX FUNCTION ---
+        if (!decoded || typeof decoded !== "object" || !("id" in decoded)) {
+            return new NextResponse(ERROR_HTML, {
+                status: 401,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
+        const userId = decoded["id"] as number;
+
         const body = await req.json();
+        const { slug } = body;
+
+        if (!slug) {
+            return new NextResponse(ERROR_HTML, {
+                status: 400,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
 
         const texRes = await fetch(TEX_FUNCTION_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                "Authorization": authHeader
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify({
+                userId,
+                slug
+            }),
         });
 
         if (!texRes.ok) {
+            console.log("response from tex function:", await texRes.text());
             return new NextResponse(ERROR_HTML, {
                 status: 500,
                 headers: { "Content-Type": "text/html" },
@@ -141,9 +162,11 @@ export async function POST(req: Request): Promise<NextResponse> {
                 "Content-Disposition": `attachment; filename="${filename}"`,
             },
         });
-    } catch {
+
+    } catch (err) {
+        console.error("Error in POST /c/[slug]:", err);
         return new NextResponse(ERROR_HTML, {
-            status: 500,
+            status: 401,
             headers: { "Content-Type": "text/html" },
         });
     }

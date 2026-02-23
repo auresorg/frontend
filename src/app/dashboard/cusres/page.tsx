@@ -58,7 +58,6 @@ export default function CusresDashboard() {
     const { cusres, hasLoaded, setCusres, deleteCusres, setHasLoaded } = useCusresStore();
     const [isClient, setIsClient] = useState(false);
     const presetDialog = usePresetDialog();
-
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -205,7 +204,8 @@ export default function CusresDashboard() {
 
                 response = await fetch(url, {
                     method: 'POST',
-                    body: JSON.stringify({ role: slug }),
+                    body: JSON.stringify({ 
+                        slug: slug }),
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
