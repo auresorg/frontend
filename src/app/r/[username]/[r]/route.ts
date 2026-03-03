@@ -42,8 +42,6 @@ export async function GET(
         }
 
         const filename = `${username}-${role}.pdf`;
-
-        // 👇 Direct public object path (no signing)
         const fileUrl = `${FILE_BASE}/storage/v1/object/public/aurespdf/${filename}`;
 
         const supabaseRes = await fetch(fileUrl);
@@ -55,11 +53,23 @@ export async function GET(
             });
         }
 
-        if (!supabaseRes.ok || !supabaseRes.body) {
+        if (supabaseRes.status === 403) {
+            console.log("Supabase fetch forbidden:", fileUrl);
             throw new Error("Failed to fetch PDF from Supabase");
         }
 
-        // 👇 Stream directly to client
+        if (!supabaseRes.ok) {
+            console.error("Supabase fetch failed:", supabaseRes.status);
+            throw new Error("Failed to fetch PDF from Supabase");
+        }
+
+        if (!supabaseRes.body) {
+            return new NextResponse(NOT_FOUND_HTML, {
+                status: 404,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
         return new NextResponse(supabaseRes.body, {
             status: 200,
             headers: {
@@ -68,8 +78,10 @@ export async function GET(
                 "Cache-Control": "public, max-age=60",
             },
         });
+
     } catch (err) {
         console.error("Resume GET error:", err);
+
         return new NextResponse(ERROR_HTML, {
             status: 500,
             headers: { "Content-Type": "text/html" },

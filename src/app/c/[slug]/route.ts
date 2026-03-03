@@ -22,9 +22,10 @@ export async function GET(
         });
         if (limited) return limited;
 
-        const slug = params.slug;
+        const { slug } = params;
 
-        if (!slug || slug.length > 20) {
+        // stricter validation
+        if (!slug || slug.length > 20 || !/^[a-z0-9-]+$/i.test(slug)) {
             return new NextResponse(INVALID_REQUEST_HTML, {
                 status: 400,
                 headers: { "Content-Type": "text/html" },
@@ -32,12 +33,11 @@ export async function GET(
         }
 
         const filename = `${slug}.pdf`;
-
-        // 👇 Direct public object path (ignoring signing)
         const fileUrl = `${FILE_BASE}/storage/v1/object/public/aurespdf/${filename}`;
 
         const supabaseRes = await fetch(fileUrl);
 
+        // file truly missing
         if (supabaseRes.status === 404) {
             return new NextResponse(NOT_FOUND_HTML, {
                 status: 404,
@@ -45,11 +45,29 @@ export async function GET(
             });
         }
 
-        if (!supabaseRes.ok || !supabaseRes.body) {
-            throw new Error("Failed to fetch PDF from Supabase");
+        // treat forbidden same as missing
+        if (supabaseRes.status === 403) {
+            return new NextResponse(NOT_FOUND_HTML, {
+                status: 404,
+                headers: { "Content-Type": "text/html" },
+            });
         }
 
-        // 👇 Stream file directly to browser
+        if (!supabaseRes.ok) {
+            console.error("Supabase fetch failed:", supabaseRes.status);
+            return new NextResponse(NOT_FOUND_HTML, {
+                status: 404,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
+        if (!supabaseRes.body) {
+            return new NextResponse(NOT_FOUND_HTML, {
+                status: 404,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
         return new NextResponse(supabaseRes.body, {
             status: 200,
             headers: {
@@ -58,8 +76,10 @@ export async function GET(
                 "Cache-Control": "public, max-age=60",
             },
         });
+
     } catch (err) {
-        console.error("GET error:", err);
+        console.error("Cusres GET error:", err);
+
         return new NextResponse(ERROR_HTML, {
             status: 500,
             headers: { "Content-Type": "text/html" },
