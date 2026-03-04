@@ -3,50 +3,10 @@ import { rateLimit } from "@/lib/valkey";
 import { ERROR_HTML, INVALID_REQUEST_HTML, NOT_FOUND_HTML } from "@/lib/html";
 import { verify } from "jsonwebtoken";
 
-const TEX_FUNCTION_URL = "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/custex";
+const TEX_FUNCTION_URL =
+    "https://aures-docgen-d3ftgqf7fmdwbjff.centralindia-01.azurewebsites.net/api/custex";
 
 const FILE_BASE = "https://vjuvnrvitnsvfopqukho.supabase.co";
-
-interface SignUrlResponse {
-    signedURL: string;
-}
-
-interface SignError extends Error {
-    statusCode?: number;
-}
-
-async function signUrl(filename: string): Promise<string> {
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!serviceKey) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-
-    const res = await fetch(
-        `${FILE_BASE}/storage/v1/object/sign/aurespdf/${filename}`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${serviceKey}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ expiresIn: 10 }),
-        }
-    );
-
-    if (!res.ok) {
-        const t = await res.text();
-        const error = new Error(`Sign failed: ${t}`) as SignError;
-        error.statusCode = res.status;
-        throw error;
-    }
-
-    const data = (await res.json()) as SignUrlResponse;
-    let path = data.signedURL;
-
-    if (!path.startsWith("/storage/v1")) {
-        path = `/storage/v1${path.startsWith("/") ? path : "/" + path}`;
-    }
-
-    return `${FILE_BASE}${path}`;
-}
 
 export async function GET(
     req: Request,
@@ -62,40 +22,73 @@ export async function GET(
         });
         if (limited) return limited;
 
-        const slug = params.slug;
-        if (!slug || slug.length > 20) {
+        const { slug } = params;
+
+        // stricter validation
+        if (!slug || slug.length > 20 || !/^[a-z0-9-]+$/i.test(slug)) {
             return new NextResponse(INVALID_REQUEST_HTML, {
                 status: 400,
-                headers: { 'Content-Type': 'text/html' },
+                headers: { "Content-Type": "text/html" },
             });
         }
 
         const filename = `${slug}.pdf`;
+        const fileUrl = `${FILE_BASE}/storage/v1/object/public/aurespdf/${filename}`;
 
-        try {
-            const signedUrl = await signUrl(filename);
-            return NextResponse.redirect(signedUrl, { status: 307 });
-        } catch (signError: unknown) {
-            const error = signError as SignError;
-            if (error.message?.includes('404') || error.statusCode === 404) {
-                return new NextResponse(NOT_FOUND_HTML, {
-                    status: 404,
-                    headers: { 'Content-Type': 'text/html' },
-                });
-            }
-            throw error;
+        const supabaseRes = await fetch(fileUrl);
+
+        // file truly missing
+        if (supabaseRes.status === 404) {
+            return new NextResponse(NOT_FOUND_HTML, {
+                status: 404,
+                headers: { "Content-Type": "text/html" },
+            });
         }
-    } catch {
+
+        // treat forbidden same as missing
+        if (supabaseRes.status === 403) {
+            return new NextResponse(NOT_FOUND_HTML, {
+                status: 404,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
+        if (!supabaseRes.ok) {
+            console.error("Supabase fetch failed:", supabaseRes.status);
+            return new NextResponse(NOT_FOUND_HTML, {
+                status: 404,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
+        if (!supabaseRes.body) {
+            return new NextResponse(NOT_FOUND_HTML, {
+                status: 404,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
+        return new NextResponse(supabaseRes.body, {
+            status: 200,
+            headers: {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": `inline; filename="${filename}"`,
+                "Cache-Control": "public, max-age=60",
+            },
+        });
+
+    } catch (err) {
+        console.error("Cusres GET error:", err);
+
         return new NextResponse(ERROR_HTML, {
             status: 500,
-            headers: { 'Content-Type': 'text/html' },
+            headers: { "Content-Type": "text/html" },
         });
     }
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
     try {
-        // --- AUTH CHECK (must be logged in) ---
         const authHeader = req.headers.get("Authorization");
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return new NextResponse(null, { status: 400 });
@@ -111,20 +104,41 @@ export async function POST(req: Request): Promise<NextResponse> {
             });
         }
 
-        verify(token, publicKey, { algorithms: ["RS256"] });
+        const decoded = verify(token, publicKey, { algorithms: ["RS256"] });
 
-        // --- FORWARD BODY TO TEX FUNCTION ---
+        if (!decoded || typeof decoded !== "object" || !("id" in decoded)) {
+            return new NextResponse(ERROR_HTML, {
+                status: 401,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
+
+        const userId = decoded["id"] as number;
+
         const body = await req.json();
+        const { slug } = body;
+
+        if (!slug) {
+            return new NextResponse(ERROR_HTML, {
+                status: 400,
+                headers: { "Content-Type": "text/html" },
+            });
+        }
 
         const texRes = await fetch(TEX_FUNCTION_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                Authorization: authHeader,
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify({
+                userId,
+                slug,
+            }),
         });
 
         if (!texRes.ok) {
+            console.log("response from tex function:", await texRes.text());
             return new NextResponse(ERROR_HTML, {
                 status: 500,
                 headers: { "Content-Type": "text/html" },
@@ -141,9 +155,10 @@ export async function POST(req: Request): Promise<NextResponse> {
                 "Content-Disposition": `attachment; filename="${filename}"`,
             },
         });
-    } catch {
+    } catch (err) {
+        console.error("Error in POST /c/[slug]:", err);
         return new NextResponse(ERROR_HTML, {
-            status: 500,
+            status: 401,
             headers: { "Content-Type": "text/html" },
         });
     }

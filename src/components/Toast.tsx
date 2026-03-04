@@ -22,7 +22,7 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={forwardedRef}
     className={cx(
-      "fixed right-0 top-0 z-9999 m-0 flex w-full max-w-[100vw] list-none flex-col gap-2 p-[var(--viewport-padding)] [--viewport-padding:_15px] sm:max-w-md sm:gap-4",
+      "fixed right-0 top-0 z-9999 m-0 flex w-full max-w-[100vw] list-none flex-col gap-2 p-(--viewport-padding) [--viewport-padding:15px] sm:max-w-md sm:gap-4",
       className,
     )}
     {...props}
@@ -32,7 +32,7 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = "ToastViewport"
 
 interface ActionProps {
-  label: string
+  label: React.ReactNode
   altText: string
   onClick: () => void | Promise<void>
 }
@@ -118,7 +118,7 @@ const Toast = React.forwardRef<
           // border color
           "border-gray-200 dark:border-gray-800",
           // swipe
-          "data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none",
+          "data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-(--radix-toast-swipe-end-x) data-[swipe=move]:translate-x-(--radix-toast-swipe-move-x) data-[swipe=move]:transition-none",
           // transition
           "data-[state=open]:animate-slide-left-and-fade",
           "data-[state=closed]:animate-hide",

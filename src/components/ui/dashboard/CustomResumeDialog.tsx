@@ -263,8 +263,8 @@ export default function CustomResumeDialog() {
             return;
         }
 
-        if (slug.length > 10) {
-            toast({ variant: 'error', title: 'Error', description: 'Name cannot be more than 10 characters long.' });
+        if (slug.length > 30) {
+            toast({ variant: 'error', title: 'Error', description: 'Name cannot be more than 30 characters long.' });
             setIsDeploying(false);
             return;
         }
@@ -465,7 +465,7 @@ export default function CustomResumeDialog() {
                         const error = result.reason;
                         if (isAxiosError(error)) {
                             if (error.response?.status === 401) {
-                                localStorage.removeItem("token");
+                                localStorage.clear();
                                 PresetDialog("sessionExpired");
                             } else if (error.code === "ERR_NETWORK") {
                                 PresetDialog("networkError");

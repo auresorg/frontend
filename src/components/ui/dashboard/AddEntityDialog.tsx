@@ -40,10 +40,10 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
     const [githubLoading, setGithubLoading] = useState(false);
 
     const { user, editAwardCount, editCertCount, setUser, editSkills } = useUserStore();
-    const { addAward } = useAwardStore();
-    const { addCertificate } = useCertificateStore();
-    const { addProject } = useProjectStore();
-    const { addExperience } = useExperienceStore();
+    const { addAward, awards } = useAwardStore();
+    const { addCertificate, certificates } = useCertificateStore();
+    const { addProject, projects } = useProjectStore();
+    const { addExperience, experiences } = useExperienceStore();
 
     // Build initial form state from config
     const initialState = config.formFields.reduce((acc, field) => {
@@ -90,6 +90,35 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
 
         // Transform tech field for projects
         const submitData: Record<string, unknown> = { ...formData };
+
+        let descriptions: string[] = [];
+
+        if (config.type === "project") {
+            descriptions = projects
+                .map(p => p.description)
+                .filter(Boolean);
+        }
+
+        if (config.type === "award") {
+            descriptions = awards
+                .map(a => a.description)
+                .filter(Boolean);
+        }
+
+        if (config.type === "certification") {
+            descriptions = certificates
+                .map(c => c.description)
+                .filter(Boolean);
+        }
+
+        if (config.type === "experience") {
+            descriptions = experiences
+                .map(e => e.description)
+                .filter(Boolean);
+        }
+
+        submitData.descriptions = descriptions;
+
         if (config.type === 'project' && submitData.tech) {
             submitData.tech = (submitData.tech as string).split(',').map(t => t.trim()).filter(t => t);
         }

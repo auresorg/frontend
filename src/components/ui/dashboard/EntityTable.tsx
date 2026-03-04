@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { deleteWithToken, getWithToken } from '@/lib/utils';
-import { RiMore2Fill, RiPencilLine, RiShareLine, RiDeleteBinLine, RiCloseLine } from '@remixicon/react';
+import { RiMore2Fill, RiPencilLine, RiShareLine, RiDeleteBinLine, RiCloseLine, RiLoader2Fill } from '@remixicon/react';
 import { isAxiosError } from 'axios';
 
 import {
@@ -99,7 +99,7 @@ export default function EntityTable({ config }: EntityTableProps) {
 
                     if (isAxiosError(error)) {
                         if (error.response?.status === 401) {
-                            localStorage.removeItem("token");
+                            localStorage.clear();
                             PresetDialog("sessionExpired");
                         } else if (error.code === "ERR_NETWORK") {
                             PresetDialog("networkError");
@@ -143,7 +143,21 @@ export default function EntityTable({ config }: EntityTableProps) {
                 altText: "Confirm Delete",
                 label: "Delete",
                 onClick: async () => {
-                    confirmToast.dismiss();
+                    confirmToast.update({
+                        action: {
+                            altText: "Deleting",
+                            onClick: () => { },
+                            label: (
+                                <span className="pointer-events-none flex shrink-0 items-center justify-center gap-1.5">
+                                    <RiLoader2Fill
+                                        className="size-4 shrink-0 animate-spin"
+                                        aria-hidden="true"
+                                    />
+                                    Deleting...
+                                </span>
+                            ),
+                        },
+                    });
 
                     try {
                         const response = await deleteWithToken(`${config.endpoint}/${entityId}`);
@@ -162,7 +176,7 @@ export default function EntityTable({ config }: EntityTableProps) {
                                 experienceStore.deleteExperience(entityId);
                                 setUser({ ...user!, experienceCount: (user?.experienceCount ?? 0) - 1 });
                             }
-
+                            confirmToast.dismiss();
                             toast({
                                 title: `${config.singular} Deleted`,
                                 description: `The ${config.singular.toLowerCase()} "${entityName}" has been deleted.`,
@@ -186,7 +200,7 @@ export default function EntityTable({ config }: EntityTableProps) {
                             PresetDialog("unexpectedError");
                         }
                     }
-                },
+                }
             },
         });
 
