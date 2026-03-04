@@ -15,7 +15,8 @@ import {
 import { Divider } from '@/components/Divider';
 import { Input } from '@/components/Input';
 import { Text } from '@/components/Text';
-import { downloadWithTokenNextEndpoint, getWithToken, postWithToken } from '@/lib/utils';
+import { Textarea } from '@/components/Textarea';
+import { downloadWithTokenNextEndpoint, getWithToken, postWithToken, postWithTokenNextEndpoint } from '@/lib/utils';
 import { usePresetDialog } from '@/lib/dialogs';
 import { isAxiosError } from 'axios';
 import { useAwardStore } from '@/store/awardStore';
@@ -67,6 +68,7 @@ type SelectionSectionProps = {
     onSelect: (item: ProjectItem | CertificationItem | AwardItem | ExperienceItem, type: ItemType) => void;
     type: ItemType;
     isLoading: boolean;
+    isJDLoading: boolean;
 };
 
 // Loading Skeleton Component
@@ -102,7 +104,7 @@ function LoadingSkeleton() {
 }
 
 // Selection Component
-function SelectionSection({ title, data, selectedItems, onSelect, type, isLoading }: SelectionSectionProps) {
+function SelectionSection({ title, data, selectedItems, onSelect, type, isLoading, isJDLoading }: SelectionSectionProps) {
     const selectedCount = selectedItems.filter(item => item.type === type).length;
 
     if (isLoading) {
@@ -159,7 +161,7 @@ function SelectionSection({ title, data, selectedItems, onSelect, type, isLoadin
                                 key={item.id}
                                 asChild
                                 className={`group min-w-[180px] max-w-[180px] cursor-pointer transition-all duration-200 ${isSelected ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
-                                onClick={() => onSelect(item, type)}
+                                onClick={() => !isJDLoading && onSelect(item, type)}
                             >
                                 <div className="relative p-3">
                                     <div className="flex items-start space-x-3">
@@ -190,6 +192,9 @@ export default function CustomResumeDialog() {
     const [isLoading, setIsLoading] = useState(false);
     const [isDeploying, setIsDeploying] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [jdOpen, setJdOpen] = useState(false);
+    const [jdText, setJdText] = useState('');
+    const [isJDLoading, setIsJDLoading] = useState(false);
 
     const PresetDialog = usePresetDialog();
     const { addCusres } = useCusresStore();
@@ -334,6 +339,85 @@ export default function CustomResumeDialog() {
             }
         } finally {
             setIsDeploying(false);
+        }
+    };
+
+    const handleJDSubmit = async () => {
+        if (!jdText.trim()) {
+            toast({ variant: 'error', title: 'Error', description: 'Please enter a job description.' });
+            return;
+        }
+
+        setIsJDLoading(true);
+
+        try {
+            const response = await postWithTokenNextEndpoint('/select', {
+                jobDescription: jdText,
+                projects: projectStore.projects,
+                certifications: certificateStore.certificates,
+                awards: awardStore.awards,
+                experiences: experienceStore.experiences
+            });
+
+            if (!response || response.status !== 200) {
+                throw new Error('Failed request');
+            }
+
+            const data = response.data.data;
+
+            const newSelected: SelectedItem[] = [];
+
+            data.projects?.forEach((id: number) => {
+                const item = projectsData.find(p => p.id === id);
+                if (item) newSelected.push({ ...item, type: 'projects' });
+            });
+
+            data.certifications?.forEach((id: number) => {
+                const item = certificationsData.find(c => c.id === id);
+                if (item) newSelected.push({ ...item, type: 'certifications' });
+            });
+
+            data.awards?.forEach((id: number) => {
+                const item = awardsData.find(a => a.id === id);
+                if (item) newSelected.push({ ...item, type: 'awards' });
+            });
+
+            data.experiences?.forEach((id: number) => {
+                const item = experiencesData.find(e => e.id === id);
+                if (item) newSelected.push({ ...item, type: 'experiences' });
+            });
+
+            setSelectedItems(newSelected);
+
+            setJdText('');
+            setJdOpen(false);
+
+            toast({
+                variant: 'success',
+                title: 'Done',
+                description: 'JD processed, selected ' + newSelected.length + ' items.',
+            });
+
+        } catch (err) {
+            if (isAxiosError(err)) {
+                if (err.response?.status === 401) {
+                    PresetDialog("sessionExpired");
+                } else {
+                    toast({
+                        variant: 'error',
+                        title: 'Error',
+                        description: 'Failed to process JD.'
+                    });
+                }
+            } else {
+                toast({
+                    variant: 'error',
+                    title: 'Error',
+                    description: 'Unexpected error.'
+                });
+            }
+        } finally {
+            setIsJDLoading(false);
         }
     };
 
@@ -532,7 +616,7 @@ export default function CustomResumeDialog() {
                                 <Text className="text-sm font-medium text-gray-900 dark:text-gray-50">
                                     Name:
                                 </Text>
-                                <div className="flex-1">
+                                <div className="w-full max-w-md">
                                     <Input
                                         value={slug}
                                         onChange={(e) => setSlug(e.target.value)}
@@ -540,6 +624,13 @@ export default function CustomResumeDialog() {
                                         className="w-full max-w-md"
                                     />
                                 </div>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setJdOpen(true)}
+                                    disabled={isDeploying || isDownloading || isJDLoading}
+                                >
+                                    Select with JD
+                                </Button>
                             </div>
                             <div className="flex space-x-2">
                                 <Button
@@ -586,6 +677,7 @@ export default function CustomResumeDialog() {
                                         onSelect={handleSelect}
                                         type="projects"
                                         isLoading={false}
+                                        isJDLoading={isJDLoading}
                                     />
 
                                     <SelectionSection
@@ -595,6 +687,7 @@ export default function CustomResumeDialog() {
                                         onSelect={handleSelect}
                                         type="certifications"
                                         isLoading={false}
+                                        isJDLoading={isJDLoading}
                                     />
 
                                     <SelectionSection
@@ -604,6 +697,7 @@ export default function CustomResumeDialog() {
                                         onSelect={handleSelect}
                                         type="awards"
                                         isLoading={false}
+                                        isJDLoading={isJDLoading}
                                     />
 
                                     <SelectionSection
@@ -613,10 +707,44 @@ export default function CustomResumeDialog() {
                                         onSelect={handleSelect}
                                         type="experiences"
                                         isLoading={false}
+                                        isJDLoading={isJDLoading}
                                     />
                                 </div>
                             )}
                         </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={jdOpen} onOpenChange={setJdOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Add Job Description</DialogTitle>
+                    </DialogHeader>
+
+                    <Textarea
+                        value={jdText}
+                        onChange={(e) => setJdText(e.target.value)}
+                        placeholder="Paste job description here..."
+                        rows={8}
+                        disabled={isJDLoading}
+                    />
+
+                    <div className="flex justify-end gap-2 mt-4">
+                        <Button
+                            variant="secondary"
+                            onClick={() => { setJdText(''); setJdOpen(false); }}
+                            disabled={isJDLoading}
+                        >
+                            Cancel
+                        </Button>
+
+                        <Button
+                            onClick={handleJDSubmit}
+                            isLoading={isJDLoading}
+                            disabled={isJDLoading}
+                        >
+                            OK
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
