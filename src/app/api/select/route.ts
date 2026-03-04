@@ -120,10 +120,10 @@ export async function POST(req: NextRequest) {
         const inputPayload = {
             jobDescription,
             validIds: {
-                projects: projects.map((p: any) => p.id),
-                certifications: certifications.map((c: any) => c.id),
-                awards: awards.map((a: any) => a.id),
-                experiences: experiences.map((e: any) => e.id)
+                projects: projects.map((p: { id: number }) => p.id),
+                certifications: certifications.map((c: { id: number }) => c.id),
+                awards: awards.map((a: { id: number }) => a.id),
+                experiences: experiences.map((e: { id: number }) => e.id)
             },
             projects,
             certifications,
