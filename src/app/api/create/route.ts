@@ -33,6 +33,9 @@ Rules for the bullet:
 - The impact must describe improvement, scale, or measurable change — not just a count of tasks.
 - Do NOT include names, titles, issuers, platforms, companies, or project names
 - Avoid fluff, generic claims, or vague responsibility statements
+- The bullet MUST NOT start with the same action verb as any bullet listed in "ExistingBullets"
+- Use a different action verb if a conflict exists
+- Avoid repeating phrasing patterns already present in ExistingBullets
 
 Determine whether the final sentence genuinely follows:
 - STAR (has clear situation/context + task/action + result)
@@ -100,6 +103,9 @@ Rules for the bullet:
 - The impact must describe improvement, scale, or measurable change — not just a count of tasks.
 - Do NOT include names, titles, issuers, platforms, companies, or project names
 - Avoid fluff, generic claims, or vague responsibility statements
+- The bullet MUST NOT start with the same action verb as any bullet listed in "ExistingBullets"
+- Use a different action verb if a conflict exists
+- Avoid repeating phrasing patterns already present in ExistingBullets
 
 Determine whether the final sentence genuinely follows:
 - STAR (has clear situation/context + task/action + result)
@@ -150,7 +156,7 @@ function getPrompts() {
 // Helper function to build context string
 function buildContext(type: string, body: Record<string, string | undefined>): string {
     let preBody = "";
-    
+
     switch (type) {
         case "experience":
             if (body.title) preBody += `Job Title: ${body.title}, `;
@@ -177,7 +183,7 @@ function buildContext(type: string, body: Record<string, string | undefined>): s
             if (body.role) preBody += `My Role: ${body.role}, `;
             break;
     }
-    
+
     return preBody;
 }
 
@@ -221,8 +227,8 @@ export async function POST(request: Request) {
             if (limited) return limited;
 
             const body = await request.json();
-            const { type } = body; // Extract type: "award", "certification", or "project"
-            
+            const { type, descriptions } = body; // Extract type: "award", "certification", or "project"
+
             if (!type || !["award", "certification", "project", "experience"].includes(type)) {
                 return new Response(
                     JSON.stringify({ error: "Invalid or missing type parameter" }),
@@ -234,6 +240,10 @@ export async function POST(request: Request) {
             const groq = new Groq();
             const prompts = getPrompts();
             const preBody = buildContext(type, body);
+            const existingBullets =
+                Array.isArray(descriptions) && descriptions.length
+                    ? `ExistingBullets:\n${descriptions.map((d: string) => `- ${d}`).join("\n")}\n\n`
+                    : "";
 
             if (plan === "pro") {
                 let responseText = "";
@@ -249,7 +259,7 @@ export async function POST(request: Request) {
                             },
                             {
                                 role: "user",
-                                content: preBody + " " + body.description
+                                content: preBody + " " + body.description + " " + existingBullets,
                             },
                         ],
                         model: "openai/gpt-oss-20b",
@@ -298,10 +308,10 @@ export async function POST(request: Request) {
                         headers: { "Content-Type": "application/json" },
                     });
                 }
-                
+
                 let responseText = "";
                 const titleField = getTitleField(type, body);
-                
+
                 const chatCompletion = await groq.chat.completions.create({
                     messages: [
                         {

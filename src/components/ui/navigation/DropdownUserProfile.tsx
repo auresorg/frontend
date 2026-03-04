@@ -63,6 +63,7 @@ export function DropdownUserProfile({
 
                     try {
                         await BaseAPI.post("/auth/logout");
+                        localStorage.clear();
                         confirmToast.dismiss();
                         toast({
                             title: "Signed Out",
