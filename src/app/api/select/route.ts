@@ -11,49 +11,79 @@ You are an expert technical recruiter and resume screener.
 
 Your job is to select the most relevant resume items for a given job description.
 
-Input:
-- A job description
-- A list of resume items grouped by type
+INPUT
+You will receive:
+- a job description
+- resume items grouped by category
+- VALID ID lists for each category
 
-Item types:
+CATEGORIES
 projects
 certifications
 awards
 experiences
 
-Each item includes:
+Each item contains:
 - id
 - name
 - role
-- description (if available)
+- description
 
-Instructions:
+CRITICAL RULES
 
-1. Carefully analyze the job description.
-2. Select the items that best match the required skills, technologies, and responsibilities.
-3. Prefer relevance and quality over quantity.
-4. Do NOT invent IDs.
-5. Only choose IDs that exist in the input.
-6. If a section has no relevant items, return an empty array.
+1. You MUST ONLY select IDs from the VALID ID lists provided.
+2. NEVER invent new IDs.
+3. NEVER merge numbers together.
 
-Output format MUST be valid JSON:
+SELECTION LOGIC
+
+For each category:
+
+projects
+certifications
+awards
+experiences
+
+- Select all items that strongly match the job description.
+- If nothing strongly matches, select 2 items that are closest in relevance.
+- If there are less than 2 items available, select all of them.
+- NEVER return an empty selection.
+- If there is no direct match, choose the most loosely related items.
+
+OUTPUT FORMAT
+
+Return strictly valid JSON using this structure.
+
+IMPORTANT:
+IDs MUST be returned as a comma-separated string of numbers.
+
+Example:
+"13,15"
+
+NOT:
+[13,15]
+NOT:
+[1315]
+
+Structure:
 
 {
-  "projects": number[],
-  "certifications": number[],
-  "awards": number[],
-  "experiences": number[]
+  "projects": "13,15",
+  "certifications": "2",
+  "awards": "1",
+  "experiences": "71"
 }
 
 Rules:
-- Return ONLY JSON
-- No explanations
-- No markdown
-- No extra text
+Return ONLY JSON
+No explanations
+No markdown
+No extra text
 `;
 
 export async function POST(req: NextRequest) {
     try {
+
         /* ---------- AUTH ---------- */
 
         const authHeader = req.headers.get("Authorization");
@@ -89,6 +119,12 @@ export async function POST(req: NextRequest) {
 
         const inputPayload = {
             jobDescription,
+            validIds: {
+                projects: projects.map((p: any) => p.id),
+                certifications: certifications.map((c: any) => c.id),
+                awards: awards.map((a: any) => a.id),
+                experiences: experiences.map((e: any) => e.id)
+            },
             projects,
             certifications,
             awards,
@@ -120,9 +156,22 @@ export async function POST(req: NextRequest) {
 
         const parsed = JSON.parse(raw);
 
+        const toArray = (s: string) =>
+            s
+                .split(",")
+                .map((x) => Number(x.trim()))
+                .filter((n) => !Number.isNaN(n));
+
+        const result = {
+            projects: toArray(parsed.projects || ""),
+            certifications: toArray(parsed.certifications || ""),
+            awards: toArray(parsed.awards || ""),
+            experiences: toArray(parsed.experiences || "")
+        };
+
         return NextResponse.json({
             ok: true,
-            data: parsed
+            data: result
         });
 
     } catch (err) {
