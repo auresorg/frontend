@@ -19,11 +19,12 @@ import { Card } from '@/components/Card';
 import { Divider } from '@/components/Divider';
 import { Button } from '@/components/Button';
 import { toast } from '@/lib/useToast';
-import { getWithToken, nextBase, deleteWithToken } from '@/lib/utils';
+import { getWithToken, nextBase, deleteWithToken, putWithToken } from '@/lib/utils';
 import { usePresetDialog } from '@/lib/dialogs';
 import { isAxiosError } from 'axios';
 import CustomResumeDialog from '@/components/ui/dashboard/CustomResumeDialog';
 import { useCusresStore } from '@/store/cusresStore';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/Select';
 
 interface CusresApiResponse {
     slug: string;
@@ -35,6 +36,7 @@ interface CusresApiResponse {
         awards: number;
         experience: number;
     };
+    template: string;
 }
 
 interface CusresWithStats {
@@ -52,15 +54,23 @@ interface CusresWithStats {
         awards: number;
         experience: number;
     };
+    template: string;
 }
 
 export default function CusresDashboard() {
-    const { cusres, hasLoaded, setCusres, deleteCusres, setHasLoaded } = useCusresStore();
+    const { cusres, hasLoaded, setCusres, deleteCusres, setHasLoaded, updateCusresTemplate } = useCusresStore();
     const [isClient, setIsClient] = useState(false);
     const presetDialog = usePresetDialog();
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    const TEMPLATE_OPTIONS = [
+        { value: "jakes", label: "Jake's Resume" },
+        { value: "jakec", label: "Jake's Compact" },
+    ];
+
+    const [loadingTemplate, setLoadingTemplate] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchCusres() {
@@ -82,7 +92,8 @@ export default function CusresDashboard() {
                         awards: [],
                         experiences: [],
                         projects: [],
-                        stats: item.stats
+                        stats: item.stats,
+                        template: item.template
                     }));
 
                     // Sort by slug
@@ -204,8 +215,9 @@ export default function CusresDashboard() {
 
                 response = await fetch(url, {
                     method: 'POST',
-                    body: JSON.stringify({ 
-                        slug: slug }),
+                    body: JSON.stringify({
+                        slug: slug
+                    }),
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -251,6 +263,67 @@ export default function CusresDashboard() {
                 description: 'Failed to download file. Please try again.',
                 variant: 'error',
             });
+        }
+    };
+
+    const handleTemplateChange = async (slug: string, template: string) => {
+        const templateLabel = TEMPLATE_OPTIONS.find(t => t.value === template)?.label || template;
+
+        setLoadingTemplate(slug);
+
+        try {
+            const res = await putWithToken(`/cusres/${slug}`, {
+                template: template
+            });
+
+            if (res.status === 204) {
+                updateCusresTemplate(slug, template);
+
+                console.log("Template updated:", slug, template);
+
+                toast({
+                    title: "Template updated",
+                    description: `Resume now uses "${templateLabel}" template`,
+                    variant: "success",
+                });
+            }
+
+        } catch (error) {
+
+            if (isAxiosError(error)) {
+
+                if (error.response?.status === 401) {
+                    presetDialog("sessionExpired");
+                    return;
+                }
+
+                if (error.response?.status === 400) {
+                    toast({
+                        title: "Invalid template",
+                        description: "The selected template is not allowed.",
+                        variant: "error",
+                    });
+                    return;
+                }
+
+                if (error.response?.status === 404) {
+                    toast({
+                        title: "Resume not found",
+                        description: "This resume no longer exists.",
+                        variant: "error",
+                    });
+                    return;
+                }
+            }
+
+            toast({
+                title: "Update failed",
+                description: "Could not update template.",
+                variant: "error",
+            });
+
+        } finally {
+            setLoadingTemplate(null);
         }
     };
 
@@ -395,6 +468,31 @@ export default function CusresDashboard() {
                                                 </div>
                                             ))}
                                         </div>
+
+                                        <div className="mt-5 flex items-center justify-between rounded-md dark:border-gray-800">
+                                            <Select
+                                                defaultValue={item.template}
+                                                onValueChange={(value) => handleTemplateChange(item.slug, value)}
+                                                disabled={loadingTemplate === item.slug}
+                                            >
+                                                <SelectTrigger className="text-sm flex items-center justify-between gap-2">
+                                                    {loadingTemplate === item.slug ? (
+                                                        <RiLoader2Fill className="size-4 animate-spin text-gray-400" />
+                                                    ) : (
+                                                        TEMPLATE_OPTIONS.find(t => t.value === item.template)?.label || "Select Template"
+                                                    )}
+                                                </SelectTrigger>
+
+                                                <SelectContent>
+                                                    {TEMPLATE_OPTIONS.map(t => (
+                                                        <SelectItem key={t.value} value={t.value}>
+                                                            {t.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
                                     </div>
 
                                     <div className="mt-6 flex gap-3">

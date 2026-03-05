@@ -107,4 +107,5 @@ export interface Cusres {
     awards: number;
     experience: number;
   };
+  template: string;
 }

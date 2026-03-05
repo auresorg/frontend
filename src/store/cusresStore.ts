@@ -7,6 +7,7 @@ interface CusresStore {
   setCusres: (cusres: Cusres[]) => void;
   addCusres: (cusres: Cusres) => void;
   deleteCusres: (id: string) => void;
+  updateCusresTemplate: (slug: string, template: string) => void;
   setHasLoaded: (loaded: boolean) => void;
 }
 
@@ -20,4 +21,10 @@ export const useCusresStore = create<CusresStore>((set) => ({
       cusres: state.cusres.filter((c) => c.id !== id),
     })),
   setHasLoaded: (hasLoaded) => set({ hasLoaded }),
+  updateCusresTemplate: (slug, template) =>
+    set((state) => ({
+      cusres: state.cusres.map((c) =>
+        c.slug === slug ? { ...c, template } : c
+      ),
+    })),
 }));
