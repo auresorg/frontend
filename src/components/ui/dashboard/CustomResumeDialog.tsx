@@ -312,6 +312,7 @@ export default function CustomResumeDialog() {
                         awards: awards.length,
                         experience: experiences.length,
                     },
+                    template: response.data.template
                 };
 
                 addCusres(newCusres);
