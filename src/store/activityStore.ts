@@ -20,11 +20,6 @@ interface LeetCodeStats {
     reputation?: number;
 }
 
-interface GitHubEvent {
-    created_at: string;
-    [key: string]: unknown;
-}
-
 interface ActivityState {
     githubUsername: string | null;
     leetcodeUsername: string | null;
@@ -69,47 +64,61 @@ export const useActivityStore = create<ActivityState>()(
                 set({ isLoading: true, error: null });
 
                 try {
-                    const eventsResponse = await fetch(
-                        `https://api.github.com/users/${githubUsername}/events/public`
+
+                    const htmlResponse = await fetch(
+                        `https://api.codetabs.com/v1/proxy/?quest=https://github.com/users/${githubUsername}/contributions`
                     );
 
-                    if (!eventsResponse.ok) {
-                        throw new Error(`GitHub API error: ${eventsResponse.status}`);
+                    if (!htmlResponse.ok) {
+                        throw new Error(`GitHub fetch error: ${htmlResponse.status}`);
                     }
 
-                    const events: GitHubEvent[] = await eventsResponse.json();
-
-                    // Process last 30 days of contributions
+                    const html = await htmlResponse.text();
                     const contributionsMap = new Map<string, number>();
+
                     const tenDaysAgo = new Date();
-                    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+                    tenDaysAgo.setDate(tenDaysAgo.getDate() - 9);
+                    for (let i = 0; i < 10; i++) {
 
-                    events.forEach((event) => {
-                        const date = new Date(event.created_at).toISOString().split('T')[0];
-                        if (new Date(date) >= tenDaysAgo) {
-                            contributionsMap.set(date, (contributionsMap.get(date) || 0) + 1);
+                        const date = new Date(tenDaysAgo);
+                        date.setDate(tenDaysAgo.getDate() + i);
+
+                        const dateStr = date.toLocaleDateString('en-CA');
+                        const regexString =
+                            `data-date="${dateStr}"[\\s\\S]*?<tool-tip[^>]*>(.*?)<\\/tool-tip>`;
+                        const regex = new RegExp(regexString);
+
+                        const match = html.match(regex);
+                        let count = 0;
+
+                        if (match) {
+                            const num = match[1].match(/(\d+) contributions?/);
+                            if (num) {
+                                count = Number(num[1]);
+                            }
                         }
-                    });
-
+                        contributionsMap.set(dateStr, count);
+                    }
                     // Fill missing days with 0
                     const contributions: GitHubContribution[] = [];
                     for (let i = 9; i >= 0; i--) {
+
                         const date = new Date();
                         date.setDate(date.getDate() - i);
-                        const dateStr = date.toISOString().split('T')[0];
+
+                        const dateStr = date.toLocaleDateString('en-CA');
+
+                        const count = contributionsMap.get(dateStr) || 0;
                         contributions.push({
                             date: dateStr,
-                            count: contributionsMap.get(dateStr) || 0
+                            count
                         });
                     }
-
                     set({
                         githubContributions: contributions,
                         lastUpdated: new Date(),
                         isLoading: false
                     });
-
-                    // Calculate streak
                     const streak = get().calculateStreak();
                     set({ githubStreak: streak });
 
@@ -118,6 +127,7 @@ export const useActivityStore = create<ActivityState>()(
                         error: error instanceof Error ? error.message : 'Failed to fetch GitHub data',
                         isLoading: false
                     });
+
                     console.error('GitHub fetch error:', error);
                 }
             },
@@ -207,6 +217,18 @@ export const useActivityStore = create<ActivityState>()(
 
                     const data = await response.json();
 
+                    const rawCalendar = JSON.parse(data.submissionCalendar);
+
+                    const calendar: Record<string, number> = {};
+
+                    Object.entries(rawCalendar).forEach(([ts, count]) => {
+                        const date = new Date(Number(ts) * 1000)
+                            .toISOString()
+                            .split("T")[0];
+
+                        calendar[date] = count as number;
+                    });
+
                     // The calendar API returns an object with date keys and submission counts
                     // We need to process last 30 days
                     const submissions: LeetCodeSubmission[] = [];
@@ -218,10 +240,10 @@ export const useActivityStore = create<ActivityState>()(
                         const date = new Date();
                         date.setDate(date.getDate() - i);
                         const dateStr = date.toISOString().split('T')[0];
-                        
+
                         // Get submission count from API response
-                        const submissionCount = data[dateStr] || 0;
-                        
+                        const submissionCount = calendar[dateStr] || 0;
+
                         submissions.push({
                             date: dateStr,
                             count: submissionCount
