@@ -20,11 +20,6 @@ interface LeetCodeStats {
     reputation?: number;
 }
 
-interface GitHubEvent {
-    created_at: string;
-    [key: string]: unknown;
-}
-
 interface ActivityState {
     githubUsername: string | null;
     leetcodeUsername: string | null;
