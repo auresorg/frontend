@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { RiGitRepositoryFill, RiLinksLine } from '@remixicon/react';
@@ -18,8 +18,8 @@ import {
 import { Input } from '@/components/Input';
 import { Label } from '@/components/Label';
 import { Textarea } from '@/components/Textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/Select';
 import { Badge } from '@/components/Badge';
+import { MultiSelect, MultiSelectItem } from '@/components/MultiSelect';
 import { EntityConfig, Entity } from '@/lib/entityConfig';
 import { useUserStore } from '@/store/userStore';
 import { postWithTokenNextEndpoint, putWithToken, roles } from '@/lib/utils';
@@ -48,29 +48,30 @@ const extractFormatBlock = (desc = "") => {
 };
 
 export default function EditEntityDialog({ config, entity, onClose, onSave }: EditEntityDialogProps) {
-    const initialState = config.formFields.reduce((acc, field) => {
+    const initialState: Record<string, any> = config.formFields.reduce((acc: Record<string, any>, field: any) => {
         if (field.type !== 'file') {
             acc[field.name] = '';
         }
         return acc;
-    }, {} as Record<string, string>);
+    }, {} as Record<string, any>);
 
-    initialState.role = '';
+    initialState.role = [];
 
-    const [formData, setFormData] = useState<Record<string, string>>(initialState);
+    const [formData, setFormData] = useState<Record<string, any>>(initialState);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [animatedText, setAnimatedText] = useState('');
     const [displayText, setDisplayText] = useState('');
-    
+
     const { user } = useUserStore();
     const PresetDialog = usePresetDialog();
 
-    const badgeText = extractFormatBlock(formData.description || "");
+    const descStr = typeof formData.description === 'string' ? formData.description : '';
+    const badgeText = extractFormatBlock(descStr);
 
     let badgeType: "error" | "default" | "success" | "warning" | "neutral" | undefined = "default";
-    
+
     switch (badgeText) {
         case 'STAR':
             badgeType = 'default';
@@ -85,30 +86,31 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
 
     useEffect(() => {
         if (entity) {
-            const newFormData: Record<string, string> = {};
-            config.formFields.forEach(field => {
-                if (field.type !== 'file') {
+            const newFormData: Record<string, unknown> = {};
+            config.formFields.forEach((field: any) => {
+                if (field.type !== 'file' && field.name !== 'role') {
                     let value = (entity as Record<string, unknown>)[field.name];
-                    
+
                     if (field.name === 'tech' && Array.isArray(value)) {
                         value = value.join(', ');
                     }
-                    
-                    newFormData[field.name] = (value as string) || '';
+
+                    newFormData[field.name] = value ?? '';
                 }
             });
-            
+
             if ('role' in entity) {
-                newFormData.role = (entity as { role?: string }).role || '';
+                const r = (entity as any).role;
+                newFormData.role = Array.isArray(r) ? r : (r ? [r] : []);
             }
-            
+
             setFormData(newFormData);
         }
     }, [entity, config.formFields]);
 
     useEffect(() => {
         if (!isGenerating && formData.description) {
-            setDisplayText(stripFormatBlock(formData.description));
+            setDisplayText(stripFormatBlock(typeof formData.description === 'string' ? formData.description : ''));
         }
     }, [formData.description, badgeText, isGenerating]);
 
@@ -143,21 +145,21 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
         setIsGenerating(true);
         const startTime = Date.now();
 
-        let newDescription: string = formData.description;
+        let newDescription: string = formData.description as string;
         let shouldUpdate = false;
 
         try {
             const requestData: Record<string, unknown> = { ...formData, type: config.type };
             const response = await postWithTokenNextEndpoint("/create", requestData);
 
-            formData.description = stripFormatBlock(formData.description);
+            formData.description = stripFormatBlock(formData.description as string);
 
             if (response && response.status === 200) {
                 const format = response.data.format;
                 const desc = response.data.description;
                 const role = response.data.role;
 
-                if (desc && desc !== formData.description) {
+                if (desc && desc !== (formData.description as string)) {
                     if (format && format !== "None") {
                         newDescription = `##${format}##${desc}`;
                     } else {
@@ -166,8 +168,10 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
                     shouldUpdate = true;
                 }
 
-                if (role && formData.role !== role) {
-                    setFormData(prev => ({ ...prev, role }));
+                // role could be an array of strings in the updated backend AI endpoint (if modified),
+                // or a single string currently. Handle suitably.
+                if (role && JSON.stringify(formData.role) !== JSON.stringify(role)) {
+                    setFormData(prev => ({ ...prev, role: Array.isArray(role) ? role : [role] }));
                 }
 
                 setDisplayText(stripFormatBlock(newDescription));
@@ -228,21 +232,32 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (submitting || !entity) return;
+
+        if (!formData.role || (formData.role as string[]).length === 0) {
+            toast({
+                title: "Validation Error",
+                description: "At least one role must be selected.",
+                variant: "error",
+                duration: 4000,
+            });
+            return;
+        }
+
         setSubmitting(true);
 
         try {
             const submitData: Record<string, unknown> = { ...formData };
-            
+
             if (config.type === 'project' && submitData.tech) {
                 submitData.tech = (submitData.tech as string).split(',').map(t => t.trim()).filter(t => t);
             }
-            
+
             if (submitData.endDate === '') {
                 submitData.endDate = null;
             }
 
             const response = await putWithToken(`${config.endpoint}/${(entity as { id: string }).id}`, submitData);
-            
+
             if (response && response.status === 200) {
                 toast({
                     title: `${config.singular} Updated`,
@@ -296,6 +311,7 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
         }
 
         if (field.type === 'textarea') {
+            const descValue = formData.description as string;
             return (
                 <div key={field.name} className="relative">
                     <Label htmlFor={field.name} className="font-medium">
@@ -306,16 +322,14 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
                         <Textarea
                             id={field.name}
                             name={field.name}
-                            value={isGenerating ? animatedText : displayText}
+                            value={isGenerating ? animatedText : displayText || descValue}
                             onChange={handleTextareaChange}
                             placeholder={field.placeholder}
-                            className={`resize-vertical min-h-[100px] pr-10 text-gray-800 ${
-                                badgeText ? "pt-3" : ""
-                            } ${
-                                isGenerating
+                            className={`resize-vertical min-h-[100px] pr-10 text-gray-800 ${badgeText ? "pt-3" : ""
+                                } ${isGenerating
                                     ? "opacity-70 blur-[1px] transition-all duration-500"
                                     : ""
-                            }`}
+                                }`}
                             rows={field.rows || 3}
                             required={isRequired}
                             disabled={isGenerating}
@@ -331,11 +345,10 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
                         {user?.plan === 'pro' && (
                             <span
                                 onClick={handleAIRephrase}
-                                className={`absolute bottom-2 right-3 text-gray-400 cursor-pointer transition-transform ${
-                                    isGenerating
+                                className={`absolute bottom-2 right-3 text-gray-400 cursor-pointer transition-transform ${isGenerating
                                         ? "opacity-50 pointer-events-none"
                                         : "hover:text-indigo-500"
-                                }`}
+                                    }`}
                             >
                                 <WandSparkles size={16} />
                             </span>
@@ -453,8 +466,8 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
         );
     };
 
-    const hasDateRange = config.formFields.some(f => f.name === 'startDate') && 
-                         config.formFields.some(f => f.name === 'endDate');
+    const hasDateRange = config.formFields.some(f => f.name === 'startDate') &&
+        config.formFields.some(f => f.name === 'endDate');
 
     return (
         <Drawer open={!!entity} onOpenChange={(open) => !open && onClose()}>
@@ -465,7 +478,7 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
 
                 <DrawerBody className="overflow-y-auto">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {config.formFields.map((field) => {
+                        {config.formFields.map((field: any) => {
                             if (hasDateRange && (field.name === 'startDate' || field.name === 'endDate')) {
                                 return null;
                             }
@@ -474,7 +487,7 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
 
                         {hasDateRange && (
                             <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
-                                {config.formFields.filter(f => f.name === 'startDate' || f.name === 'endDate').map(field => {
+                                {config.formFields.filter((f: any) => f.name === 'startDate' || f.name === 'endDate').map((field: any) => {
                                     const label = user?.plan === 'pro' && field.proLabel ? field.proLabel : field.label;
                                     return (
                                         <div key={field.name}>
@@ -505,23 +518,20 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
                         {'role' in (entity || {}) && (
                             <div>
                                 <Label htmlFor="role" className="font-medium">
-                                    Role <span style={{ color: "red" }}>*</span>
+                                    Role <span className="text-red-500">*</span>
                                 </Label>
-                                <Select
-                                    value={formData.role}
-                                    onValueChange={(value) => setFormData({ ...formData, role: value })}
+                                <MultiSelect
+                                    value={(formData.role as string[]) || []}
+                                    onValueChange={(value: string[]) => setFormData({ ...formData, role: value })}
+                                    placeholder="Select roles"
+                                    className="mt-2 text-sm"
                                 >
-                                    <SelectTrigger className="mt-2">
-                                        <SelectValue placeholder="Select a role" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {roles.map((role) => (
-                                            <SelectItem key={role.value} value={role.value}>
-                                                {role.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    {roles.map((role: { value: string, label: string }) => (
+                                        <MultiSelectItem key={role.value} value={role.value}>
+                                            {role.label}
+                                        </MultiSelectItem>
+                                    ))}
+                                </MultiSelect>
                             </div>
                         )}
                     </form>

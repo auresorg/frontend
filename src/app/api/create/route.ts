@@ -44,12 +44,11 @@ Determine whether the final sentence genuinely follows:
 
 If none cleanly apply, set format to "None".
 
-Infer the **single most relevant technical role** based strictly on the skills and work demonstrated (not the label of the item).
-
+Infer the **most relevant technical roles** based strictly on the skills and work demonstrated (not the label of the item). You MUST return ALL appropriate roles (e.g. return ["backend", "frontend", "fullstack"] if both are involved or if it is a large application). You can return up to 10 roles.
 
 Role inference rules (STRICT):
 
-- If both backend and frontend technologies are present, classify as fullstack.
+- If an application has both backend and frontend, you MUST return "fullstack", AND you should ALSO return "frontend" and "backend" if they are prominent.
 - If database access (SQL, JDBC, ORM, server, API, backend frameworks) is present, prefer backend unless strong frontend-only signals exist.
 - Desktop UI frameworks (e.g., Java Swing) combined with database connectivity must be classified as fullstack.
 - IoT + cloud/server connectivity must be classified as backend.
@@ -68,7 +67,7 @@ Return output in **valid JSON only**, exactly as:
 {
   "bullet": "<single-sentence bullet>",
   "format": "<STAR | CAR | XYZ | None>",
-  "role": "<one role from enum>"
+  "role": ["<array>", "<of>", "<roles>"]
 }
 `;
 
@@ -128,17 +127,19 @@ Return output in **valid JSON only**, exactly as:
 const roleOnly: string = `
 You are an expert technical resume reviewer who thinks like a hiring manager.
 
-Read the user's description and infer the **single most relevant technical role** based strictly on the skills, tools, and type of work demonstrated.
+Read the user's description and infer all relevant **technical roles** based strictly on the skills, tools, and type of work demonstrated.
 
 Do not infer based on labels, titles, or award names.
 Do not guess future intent.
 Do not blend roles.
 
-Choose exactly one role from:
+Choose up to 10 roles from:
 ["fullstack", "backend", "frontend", "devops", "mobile", "aiml", "product", "qa", "designer", "blockchain"]
 
-Return **only** the role name.
-No punctuation.
+You MUST return ALL roles that apply. If the project is full stack, output ["fullstack", "backend", "frontend"]. DO NOT artificially limit your selection to one role if multiple are applicable.
+
+Output format MUST BE exactly this JSON array of strings and NOTHING ELSE:
+["role1", "role2"]
 No explanations.
 No JSON.
 Nothing else.
@@ -250,7 +251,7 @@ export async function POST(request: Request) {
                 const role = body.role;
                 let chatCompletion;
 
-                if (role) {
+                if (role && (!Array.isArray(role) || role.length > 0)) {
                     chatCompletion = await groq.chat.completions.create({
                         messages: [
                             {
@@ -294,15 +295,41 @@ export async function POST(request: Request) {
                     responseText += chunk.choices[0]?.delta?.content || "";
                 }
 
-                const response = JSON.parse(responseText);
+                const responseTextComplete = responseText.trim();
+                let bullet = "";
+                let format = "None";
+                let returnedRole: string[] = [];
+
+                if (responseTextComplete) {
+                    try {
+                        let jsonStr = responseTextComplete;
+                        const firstBrace = jsonStr.indexOf('{');
+                        const lastBrace = jsonStr.lastIndexOf('}');
+                        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                            jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+                        }
+                        const response = JSON.parse(jsonStr);
+                        bullet = response.bullet || "";
+                        format = response.format || "None";
+                        returnedRole = Array.isArray(response.role) ? response.role : (response.role ? [response.role] : []);
+                    } catch (e) {
+                         console.error("Failed to parse JSON response from Groq:", e, responseTextComplete);
+                    }
+                }
+
+                // fallback to original role if nothing returned
+                if (!returnedRole.length && role) {
+                    returnedRole = Array.isArray(role) ? role : [role];
+                }
+
                 return new Response(JSON.stringify({
-                    description: response.bullet,
-                    role: response.role,
-                    format: response.format,
+                    description: bullet,
+                    role: returnedRole.filter(Boolean),
+                    format: format,
                 }));
             } else {
                 // Free plan - only return role
-                if (body.role) {
+                if (body.role && (!Array.isArray(body.role) || body.role.length > 0)) {
                     return new Response(JSON.stringify({ role: body.role }), {
                         status: 200,
                         headers: { "Content-Type": "application/json" },
@@ -335,7 +362,23 @@ export async function POST(request: Request) {
                     responseText += chunk.choices[0]?.delta?.content || "";
                 }
 
-                return new Response(JSON.stringify({ role: responseText }), {
+                let parsedRoles: string[] = [];
+                try {
+                    let jsonStr = responseText.trim();
+                    const firstBracket = jsonStr.indexOf('[');
+                    const lastBracket = jsonStr.lastIndexOf(']');
+                    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+                        jsonStr = jsonStr.substring(firstBracket, lastBracket + 1);
+                    }
+                    parsedRoles = JSON.parse(jsonStr);
+                    if (!Array.isArray(parsedRoles)) {
+                        parsedRoles = [responseText.trim()];
+                    }
+                } catch {
+                    parsedRoles = [responseText.trim()];
+                }
+
+                return new Response(JSON.stringify({ role: parsedRoles }), {
                     status: 200,
                     headers: { "Content-Type": "application/json" },
                 });

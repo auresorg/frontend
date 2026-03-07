@@ -290,7 +290,7 @@ export default function EntityTable({ config }: EntityTableProps) {
                                     {config.tableColumns.map((column) => (
                                         <TableHeaderCell
                                             key={column.key}
-                                            className={column.key === "name" ? "w-[30%]" : column.key === "repo" ? "w-[35%]" : column.key === "role" ? "w-[10%]" : ""}
+                                            className={column.key === "name" ? "w-[30%]" : column.key === "repo" ? "w-[20%]" : column.key === "role" ? "w-[25%]" : ""}
                                         >
                                             {column.label}
                                         </TableHeaderCell>
