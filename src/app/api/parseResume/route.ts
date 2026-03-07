@@ -85,7 +85,7 @@ Project {
     repo: string; FORMAT: "username"/"reponame" 
     tech: string[];
     description: string;
-    role: 'fullstack' | 'backend' | 'frontend' | 'devops' | 'mobile' | 'aiml' | 'product' | 'qa' | 'designer' | 'blockchain';
+    role: ('fullstack' | 'backend' | 'frontend' | 'devops' | 'mobile' | 'aiml' | 'product' | 'qa' | 'designer' | 'blockchain')[];
     startDate: string;
     endDate: string;
     url: string; DEFAULT: https://github.com/<VALUE OF REPO>
@@ -105,7 +105,7 @@ Certification {
     title: string;
     platform: string;
     description: string;
-    role: 'fullstack' | 'backend' | 'frontend' | 'devops' | 'mobile' | 'aiml' | 'product' | 'qa' | 'designer' | 'blockchain';
+    role: ('fullstack' | 'backend' | 'frontend' | 'devops' | 'mobile' | 'aiml' | 'product' | 'qa' | 'designer' | 'blockchain')[];
     url: string;
     completedOn: string;
 };
@@ -116,7 +116,7 @@ Award {
     type: string;
     description: string;
     date: string;
-    role: string;
+    role: string[];
 }
 
 Experience {
@@ -125,7 +125,7 @@ Experience {
     startDate: string;
     endDate: string | null;
     description: string;
-    role: string;
+    role: string[];
 }
 
 Return exactly this JSON schema:
@@ -199,7 +199,7 @@ Determine whether the EACH FINAL SENTENCE genuinely follows:
 
 If none apply, set format to "None".
 
-Infer the **single most relevant technical role** based strictly on the skills and work demonstrated (not the label of the item) for EACH item
+Infer **all relevant technical roles** based strictly on the skills and work demonstrated (not the label of the item) for EACH item. Output an array of up to 10 valid roles.
 
 Role inference rules (STRICT):
 
@@ -236,7 +236,7 @@ Return EXACTLY this shape:
   {
     "description": "<single-sentence bullet>",
     "format": "<STAR | CAR | XYZ | None>",
-    "role": "<one role from enum>"
+    "role": ["<array>", "<of>", "<roles>"]
   }
 ]
 `

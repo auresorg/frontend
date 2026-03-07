@@ -164,7 +164,7 @@ export default function ResumeDashboard() {
                     Role Based Resumes
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-500">
-                    View your role-specific resumes ({resumes.length} roles)
+                    View your role-specific resumes ({resumes.length} roles out of 10 available roles).
                 </p>
             </div>
 

@@ -287,12 +287,28 @@ export default function CustomResumeDialog() {
         const experiences = selectedItems.filter(item => item.type === 'experiences').map(item => item.id);
 
         try {
+            //count of all items
+            let template;
+            const count =  projects.length + certifications.length + awards.length + experiences.length;
+            
+            switch (true) {
+                case (count <= 7):
+                    template = 'jakes';
+                    break;
+                case (count <= 12):
+                    template = 'jakec';
+                    break;
+                default:
+                    template = 'jakes';
+            }
+            
             const response = await postWithToken('/cusres', {
                 slug: slug.trim(),
                 projects,
                 certifications,
                 awards,
-                experiences
+                experiences,
+                template: template
             });
 
             if (response.status === 201) {

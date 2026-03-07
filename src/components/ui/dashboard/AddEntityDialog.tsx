@@ -24,10 +24,11 @@ import { useAwardStore } from '@/store/awardStore';
 import { useCertificateStore } from '@/store/certificateStore';
 import { useProjectStore } from '@/store/projectStore';
 import { useExperienceStore } from '@/store/experienceStore';
-import { postWithTokenNextEndpoint } from '@/lib/utils';
 import { Award, Certification, Project, Experience } from '@/lib/types';
 import { Import } from 'lucide-react';
 import { toast } from '@/lib/useToast';
+import { postWithTokenNextEndpoint, roles } from '@/lib/utils';
+import { MultiSelect, MultiSelectItem } from '@/components/MultiSelect';
 
 interface AddEntityDialogProps {
     config: EntityConfig;
@@ -45,14 +46,14 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
     const { addProject, projects } = useProjectStore();
     const { addExperience, experiences } = useExperienceStore();
 
-    // Build initial form state from config
-    const initialState = config.formFields.reduce((acc, field) => {
+    const initialState: Record<string, any> = config.formFields.reduce((acc, field) => {
         if (field.type !== 'file') {
             acc[field.name] = '';
         }
         return acc;
-    }, {} as Record<string, string>);
+    }, {} as Record<string, any>);
 
+    initialState.role = [];
     const { formData, setFormState, error, setError, handleChange, resetForm } = useFormState(initialState);
 
     const handleSuccess = (data: unknown) => {
@@ -87,6 +88,16 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (user?.plan !== 'pro' && (!formData.role || (formData.role as string[]).length === 0)) {
+            toast({
+                title: "Validation Error",
+                description: "At least one role must be selected.",
+                variant: "error",
+                duration: 4000,
+            });
+            return;
+        }
 
         // Transform tech field for projects
         const submitData: Record<string, unknown> = { ...formData };
@@ -288,7 +299,7 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
             setGithubLoading(true);
             setOcrLoading(true);
 
-            const repoInput = formData.repo.trim();
+            const repoInput = String(formData.repo).trim();
 
             let owner = '';
             let repo = '';
@@ -458,6 +469,26 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
                                             </div>
                                         );
                                     })}
+                                </div>
+                            )}
+
+                            {user?.plan !== 'pro' && (
+                                <div>
+                                    <Label htmlFor="role" className="font-medium text-sm">
+                                        Role <span className="text-red-500">*</span>
+                                    </Label>
+                                    <MultiSelect
+                                        value={formData.role as string[] || []}
+                                        onValueChange={(value: string[]) => setFormState({ ...formData, role: value })}
+                                        placeholder="Select roles"
+                                        className="mt-2 text-sm"
+                                    >
+                                        {roles.map((role: { value: string, label: string }) => (
+                                            <MultiSelectItem key={role.value} value={role.value}>
+                                                {role.label}
+                                            </MultiSelectItem>
+                                        ))}
+                                    </MultiSelect>
                                 </div>
                             )}
                         </div>
