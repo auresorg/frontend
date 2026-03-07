@@ -48,16 +48,16 @@ const extractFormatBlock = (desc = "") => {
 };
 
 export default function EditEntityDialog({ config, entity, onClose, onSave }: EditEntityDialogProps) {
-    const initialState: Record<string, any> = config.formFields.reduce((acc: Record<string, any>, field: any) => {
+    const initialState: Record<string, unknown> = config.formFields.reduce((acc: Record<string, unknown>, field: typeof config.formFields[0]) => {
         if (field.type !== 'file') {
             acc[field.name] = '';
         }
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
 
     initialState.role = [];
 
-    const [formData, setFormData] = useState<Record<string, any>>(initialState);
+    const [formData, setFormData] = useState<Record<string, unknown>>(initialState);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -87,7 +87,7 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
     useEffect(() => {
         if (entity) {
             const newFormData: Record<string, unknown> = {};
-            config.formFields.forEach((field: any) => {
+            config.formFields.forEach((field: typeof config.formFields[0]) => {
                 if (field.type !== 'file' && field.name !== 'role') {
                     let value = (entity as Record<string, unknown>)[field.name];
 
@@ -100,13 +100,13 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
             });
 
             if ('role' in entity) {
-                const r = (entity as any).role;
+                const r = (entity as { role?: unknown }).role;
                 newFormData.role = Array.isArray(r) ? r : (r ? [r] : []);
             }
 
             setFormData(newFormData);
         }
-    }, [entity, config.formFields]);
+    }, [entity, config.formFields, config]);
 
     useEffect(() => {
         if (!isGenerating && formData.description) {
@@ -478,7 +478,7 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
 
                 <DrawerBody className="overflow-y-auto">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {config.formFields.map((field: any) => {
+                        {config.formFields.map((field: typeof config.formFields[0]) => {
                             if (hasDateRange && (field.name === 'startDate' || field.name === 'endDate')) {
                                 return null;
                             }
@@ -487,7 +487,7 @@ export default function EditEntityDialog({ config, entity, onClose, onSave }: Ed
 
                         {hasDateRange && (
                             <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
-                                {config.formFields.filter((f: any) => f.name === 'startDate' || f.name === 'endDate').map((field: any) => {
+                                {config.formFields.filter((f: typeof config.formFields[0]) => f.name === 'startDate' || f.name === 'endDate').map((field: typeof config.formFields[0]) => {
                                     const label = user?.plan === 'pro' && field.proLabel ? field.proLabel : field.label;
                                     return (
                                         <div key={field.name}>

@@ -20,13 +20,18 @@ export function MultiSelect({
   placeholder?: string
   className?: string
 }) {
-  const options = React.Children.toArray(children).map((child: any) => ({
-    value: child.props.value,
-    label: child.props.children || child.props.label,
-  }))
+  const options = React.Children.toArray(children)
+    .filter(React.isValidElement)
+    .map((child) => {
+      const el = child as React.ReactElement<{ value: string; children?: React.ReactNode; label?: string }>;
+      return {
+        value: el.props.value,
+        label: el.props.children || el.props.label,
+      };
+    })
 
   const selectedOptions = options.filter(opt => value.includes(opt.value))
-  
+
   const handleSelect = (val: string) => {
     if (!onValueChange) return
     if (value.includes(val)) {
@@ -85,8 +90,7 @@ export function MultiSelect({
     </DropdownMenu>
   )
 }
-
-export function MultiSelectItem({ value, children }: { value: string, children: React.ReactNode }) {
-  // Dummy component just to extract props in MultiSelect via React.Children
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function MultiSelectItem({ value, children }: { value: string; children: React.ReactNode }) {
   return null
 }

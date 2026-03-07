@@ -46,12 +46,12 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
     const { addProject, projects } = useProjectStore();
     const { addExperience, experiences } = useExperienceStore();
 
-    const initialState: Record<string, any> = config.formFields.reduce((acc, field) => {
+    const initialState: Record<string, unknown> = config.formFields.reduce((acc: Record<string, unknown>, field) => {
         if (field.type !== 'file') {
             acc[field.name] = '';
         }
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
 
     initialState.role = [];
     const { formData, setFormState, error, setError, handleChange, resetForm } = useFormState(initialState);
@@ -232,7 +232,7 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
         // Input with icon (repo, url)
         const showIcon = field.name === 'repo' || field.name === 'url';
         const Icon = field.name === 'repo' ? RiGitRepositoryFill : RiLinksLine;
-        const showGithubFetch = config.type === 'project' && field.name === 'repo' && formData.repo;
+        const showGithubFetch = config.type === 'project' && field.name === 'repo' && Boolean(formData.repo);
 
         return (
             <div key={field.name}>
