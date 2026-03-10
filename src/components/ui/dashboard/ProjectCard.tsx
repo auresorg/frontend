@@ -13,8 +13,8 @@ interface ProjectsCardProps {
 
 export default function ProjectsCard({ value, change, changeType, href }: ProjectsCardProps) {
     const getChangeColor = (type: 'positive' | 'negative') => {
-        return type === 'positive' 
-            ? 'text-emerald-700 dark:text-emerald-500' 
+        return type === 'positive'
+            ? 'text-emerald-700 dark:text-emerald-500'
             : 'text-red-700 dark:text-red-500';
     };
 
@@ -33,13 +33,13 @@ export default function ProjectsCard({ value, change, changeType, href }: Projec
                         </span>
                     </div>
                 </div>
-                
+
                 <div className="mb-4">
                     <div className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
                         {value}
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Portfolio projects
+                        Projects
                     </div>
                 </div>
 

@@ -11,6 +11,7 @@ import {
     RiAwardLine,
     RiArrowRightUpLine,
     RiBriefcaseLine,
+    RiLoader2Fill,
 } from '@remixicon/react';
 
 import { Card } from '@/components/Card';
@@ -19,16 +20,24 @@ import { Button } from '@/components/Button';
 import { toast } from '@/lib/useToast';
 import { useResumeStore } from '@/store/resumeStore';
 import { useUserStore } from '@/store/userStore'; // Import UserStore
-import { getWithToken, nextBase } from '@/lib/utils';
+import { getWithToken, nextBase, putWithToken } from '@/lib/utils';
 import { usePresetDialog } from '@/lib/dialogs';
 import { ResumeItem } from '@/lib/types';
 import { isAxiosError } from 'axios';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/Select';
 
 export default function ResumeDashboard() {
-    const { resumes, hasLoaded, setResumes, setHasLoaded } = useResumeStore();
+    const { resumes, hasLoaded, setResumes, setHasLoaded, updateResumeTemplate } = useResumeStore();
     const { user } = useUserStore(); // Get current user
     const [isClient, setIsClient] = useState(false);
     const presetDialog = usePresetDialog();
+
+    const TEMPLATE_OPTIONS = [
+        { value: "jakes", label: "Jake's Resume" },
+        { value: "jakec", label: "Jake's Compact" },
+    ];
+
+    const [loadingTemplate, setLoadingTemplate] = useState<string | null>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -143,6 +152,51 @@ export default function ResumeDashboard() {
             });
         }
     };
+    
+    const handleTemplateChange = async (role: string, template: string) => {
+        const templateLabel = TEMPLATE_OPTIONS.find(t => t.value === template)?.label || template;
+
+        setLoadingTemplate(role);
+
+        try {
+            const res = await putWithToken(`/user/roleres/${role}`, {
+                template: template
+            });
+
+            if (res.status === 204) {
+                updateResumeTemplate(role, template);
+
+                toast({
+                    title: "Template updated",
+                    description: `${role.charAt(0).toUpperCase() + role.slice(1)} resume now uses "${templateLabel}" template`,
+                    variant: "success",
+                });
+            }
+
+        } catch (error) {
+            if (isAxiosError(error)) {
+                if (error.response?.status === 401) {
+                    presetDialog("sessionExpired");
+                    return;
+                }
+                if (error.response?.status === 404) {
+                    toast({
+                        title: "Resume not found",
+                        description: "This resume record could not be found.",
+                        variant: "error",
+                    });
+                    return;
+                }
+            }
+            toast({
+                title: "Update failed",
+                description: "Could not update template.",
+                variant: "error",
+            });
+        } finally {
+            setLoadingTemplate(null);
+        }
+    };
 
     const formatDate = (dateStr: string | null) => {
         if (!dateStr) return 'Never';
@@ -235,19 +289,21 @@ export default function ResumeDashboard() {
                                                     {displayName}
                                                 </h4>
                                                 <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                                                    <RiEyeLine className="size-3.5" />
+                                                     <RiEyeLine className="size-3.5" />
                                                     Compiled: {formatDate(item.last_compiled)}
                                                 </p>
                                             </div>
 
-                                            <a
-                                                href={displayUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-gray-400 hover:text-blue-500 transition-colors"
-                                            >
-                                                <RiArrowRightUpLine className="size-5" />
-                                            </a>
+                                            <div className="flex gap-2">
+                                                <a
+                                                    href={displayUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-gray-400 hover:text-blue-500 transition-colors"
+                                                >
+                                                    <RiArrowRightUpLine className="size-5" />
+                                                </a>
+                                            </div>
                                         </div>
 
                                         {/* URL Bar */}
@@ -280,6 +336,30 @@ export default function ResumeDashboard() {
                                                     </span>
                                                 </div>
                                             ))}
+                                        </div>
+
+                                        <div className="mt-5 flex items-center justify-between rounded-md dark:border-gray-800">
+                                            <Select
+                                                defaultValue={item.template}
+                                                onValueChange={(value) => handleTemplateChange(item.role, value)}
+                                                disabled={loadingTemplate === item.role}
+                                            >
+                                                <SelectTrigger className="text-sm flex items-center justify-between gap-2">
+                                                    {loadingTemplate === item.role ? (
+                                                        <RiLoader2Fill className="size-4 animate-spin text-gray-400" />
+                                                    ) : (
+                                                        TEMPLATE_OPTIONS.find(t => t.value === item.template)?.label || "Select Template"
+                                                    )}
+                                                </SelectTrigger>
+
+                                                <SelectContent>
+                                                    {TEMPLATE_OPTIONS.map(t => (
+                                                        <SelectItem key={t.value} value={t.value}>
+                                                            {t.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </div>
 
