@@ -4,6 +4,12 @@ import Image from 'next/image'
 import Link from 'next/link';
 import { githubClientId, nextBase } from '@/lib/utils';
 
+const navLinks = [
+    { name: "Home", href: "#s1" },
+    { name: "Features", href: "#s3" },
+    { name: "The Aures Way", href: "#s4" }
+];
+
 function Nav() {
     const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
     const [open, setOpen] = useState(false);
@@ -12,12 +18,6 @@ function Nav() {
     const [activeLink, setActiveLink] = useState("Home");
     const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0, opacity: 0 });
     const linksRef = useRef<HTMLDivElement>(null);
-
-    const navLinks = [
-        { name: "Home", href: "#s1" },
-        { name: "Features", href: "#s3" },
-        { name: "The Aures Way", href: "#s4" }
-    ];
 
     useEffect(() => {
         setLoggedIn(localStorage.getItem("token") ? true : false)
@@ -48,7 +48,7 @@ function Nav() {
         window.addEventListener('scroll', handleScroll);
         setTimeout(handleScroll, 100);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [navLinks]);
 
     useEffect(() => {
         if (!linksRef.current) return;

@@ -141,7 +141,7 @@ function GithubCallbackInner() {
             };
             sendCode();
         }
-    }, [code, loading, router, setUser, showDialog]);
+    }, [code, loading, router, setUser, showDialog, PresetDialog]);
 
     return (
         loading ? (

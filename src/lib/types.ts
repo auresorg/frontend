@@ -91,6 +91,7 @@ export interface ResumeItem {
     role: string;
     last_compiled: string | null;
     stats: ResumeStats;
+    template: string;
 }
 export interface Cusres {
   id: string;
