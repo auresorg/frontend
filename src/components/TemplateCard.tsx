@@ -1,0 +1,69 @@
+// components/templates/TemplateCard.tsx
+'use client';
+
+import { RiRocketLine, RiLoader2Fill, RiArrowRightUpLine } from '@remixicon/react';
+import { Button } from '@/components/Button';
+import type { Template } from '@/lib/types';
+
+interface TemplateCardProps {
+    template: Template;
+    isLoading: boolean;
+    onDeploy: (templateId: string) => void;
+    onPreview: (url: string) => void;
+}
+
+export function TemplateCard({ template, isLoading, onDeploy, onPreview }: TemplateCardProps) {
+    return (
+        <li>
+            <article className="group relative aspect-video overflow-hidden rounded-2xl bg-gray-900/5 dark:bg-gray-900/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                <img
+                    src={template.image}
+                    alt={template.name}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                />
+
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+                <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10" />
+
+                <div className="absolute inset-x-0 bottom-0 p-4 pr-40 sm:pr-44">
+                    <h4 className="text-sm sm:text-base font-semibold text-white">
+                        {template.name}
+                    </h4>
+                    <p className="mt-1 text-xs sm:text-sm text-white/80 line-clamp-2">
+                        {template.description}
+                    </p>
+                </div>
+
+                <div className="absolute right-3 bottom-3 z-10 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 ease-out">
+                    <Button
+                        variant="secondary"
+                        className="h-9 px-3 bg-white/90 hover:bg-white text-gray-900 backdrop-blur-md border-0 shadow"
+                        onClick={() => onPreview('https://github.com')}
+                    >
+                        <RiArrowRightUpLine className="size-4 mr-1.5" />
+                        Preview
+                    </Button>
+
+                    <Button
+                        variant="primary"
+                        className="h-9 px-3 bg-gray-900/90 hover:bg-gray-900 text-white backdrop-blur-md border-0 shadow"
+                        onClick={() => onDeploy(template.id)}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <>
+                                <RiLoader2Fill className="size-4 mr-1.5 animate-spin" />
+                                Deploying
+                            </>
+                        ) : (
+                            <>
+                                <RiRocketLine className="size-4 mr-1.5" />
+                                Deploy
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </article>
+        </li>
+    );
+}

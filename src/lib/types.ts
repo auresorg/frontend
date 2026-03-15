@@ -15,7 +15,7 @@ export type User = {
     certCount: number;
     awardsCount: number;
     experienceCount: number;
-    skillCount : number;
+    skillCount: number;
 };
 
 export type Project = {
@@ -52,13 +52,13 @@ export type Certification = {
 };
 
 export interface Award {
-  id: string;
-  title: string;
-  issuer: string;
-  type: string;
-  description: string;
-  date: string;
-  role: string;
+    id: string;
+    title: string;
+    issuer: string;
+    type: string;
+    description: string;
+    date: string;
+    role: string;
 }
 
 export type Experience = {
@@ -94,19 +94,28 @@ export interface ResumeItem {
     template: string;
 }
 export interface Cusres {
-  id: string;
-  slug: string;
-  dataUpdatedAt: string;
-  compiledAt: string | null;
-  projects: number[];
-  certifications: number[];
-  awards: number[];
-  experiences: number[];
-  stats: {
-    projects: number;
-    certificates: number;
-    awards: number;
-    experience: number;
-  };
-  template: string;
+    id: string;
+    slug: string;
+    dataUpdatedAt: string;
+    compiledAt: string | null;
+    projects: number[];
+    certifications: number[];
+    awards: number[];
+    experiences: number[];
+    stats: {
+        projects: number;
+        certificates: number;
+        awards: number;
+        experience: number;
+    };
+    template: string;
+}
+
+// lib/github/types.ts
+export interface Template {
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+    repo: string;
 }
