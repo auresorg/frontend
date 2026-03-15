@@ -25,6 +25,7 @@ interface DeployDialogProps {
 export function DeployDialog({ open, onOpenChange, template, onDeploy }: DeployDialogProps) {
     const [fields, setFields] = useState<ConfigField[]>([]);
     const [formData, setFormData] = useState<Record<string, string | string[]>>({});
+    const [customDomain, setCustomDomain] = useState('');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -50,6 +51,7 @@ export function DeployDialog({ open, onOpenChange, template, onDeploy }: DeployD
                                 saved[field.name] = field.defaultValue || '';
                             }
                         });
+                        setCustomDomain(localStorage.getItem('portfolioCustomDomain') || '');
                         setFormData(saved);
                     }
                 })
@@ -84,6 +86,14 @@ export function DeployDialog({ open, onOpenChange, template, onDeploy }: DeployD
                 localStorage.setItem(field.name, data[field.name] as string);
             }
         });
+
+        const normalizedCustomDomain = customDomain.trim();
+        if (normalizedCustomDomain) {
+            data.customDomain = normalizedCustomDomain;
+            localStorage.setItem('portfolioCustomDomain', normalizedCustomDomain);
+        } else {
+            localStorage.removeItem('portfolioCustomDomain');
+        }
 
         onDeploy(data);
     };
@@ -122,6 +132,20 @@ export function DeployDialog({ open, onOpenChange, template, onDeploy }: DeployD
                                 />
                             </div>
                         ))}
+
+                        <div>
+                            <Label htmlFor="customDomain">
+                                Custom Domain
+                                <span className="text-xs text-gray-500 ml-2">Optional. Leave blank to use GitHub Pages URL.</span>
+                            </Label>
+                            <Input
+                                id="customDomain"
+                                name="customDomain"
+                                value={customDomain}
+                                onChange={(e) => setCustomDomain(e.target.value)}
+                                placeholder="example.com"
+                            />
+                        </div>
 
                         <DialogFooter>
                             <Button type="submit" className="w-full" disabled={loading}>
