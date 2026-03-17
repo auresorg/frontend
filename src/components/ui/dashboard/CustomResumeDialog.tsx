@@ -170,7 +170,7 @@ function SelectionSection({ title, data, selectedItems, onSelect, type, isLoadin
                                                 {item.name}
                                             </Text>
                                             <Text className="truncate text-xs text-gray-500 dark:text-gray-500 mt-0.5">
-                                                {item.role}
+                                                {Array.isArray(item.role) ? item.role.join(', ') : item.role}
                                             </Text>
                                         </div>
                                     </div>
