@@ -1,7 +1,7 @@
 // components/templates/TemplateCard.tsx
 'use client';
 
-import { RiRocketLine, RiLoader2Fill, RiArrowRightUpLine } from '@remixicon/react';
+import { RiRocketLine, RiLoader2Fill } from '@remixicon/react';
 import { Button } from '@/components/Button';
 import type { Template } from '@/lib/types';
 
@@ -9,10 +9,9 @@ interface TemplateCardProps {
     template: Template;
     isLoading: boolean;
     onDeploy: (templateId: string) => void;
-    onPreview: (url: string) => void;
 }
 
-export function TemplateCard({ template, isLoading, onDeploy, onPreview }: TemplateCardProps) {
+export function TemplateCard({ template, isLoading, onDeploy }: TemplateCardProps) {
     return (
         <li>
             <article className="group relative aspect-video overflow-hidden rounded-2xl bg-gray-900/5 dark:bg-gray-900/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
@@ -34,19 +33,19 @@ export function TemplateCard({ template, isLoading, onDeploy, onPreview }: Templ
                     </p>
                 </div>
 
-                <div className="absolute right-3 bottom-3 z-10 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 ease-out">
-                    <Button
+                <div className="absolute right-3 bottom-3 z-20 flex gap-2 opacity-100 translate-y-0 sm:opacity-0 sm:translate-y-2 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 transition-all duration-200 ease-out">
+                    {/* <Button
                         variant="secondary"
                         className="h-9 px-3 bg-white/90 hover:bg-white text-gray-900 backdrop-blur-md border-0 shadow"
                         onClick={() => onPreview('https://github.com')}
                     >
                         <RiArrowRightUpLine className="size-4 mr-1.5" />
                         Preview
-                    </Button>
+                    </Button> */}
 
                     <Button
-                        variant="primary"
-                        className="h-9 px-3 bg-gray-900/90 hover:bg-gray-900 text-white backdrop-blur-md border-0 shadow"
+                        variant="secondary"
+                        className="h-9 px-3 bg-white/90 hover:bg-white text-gray-900 backdrop-blur-md border-0 shadow"
                         onClick={() => onDeploy(template.id)}
                         disabled={isLoading}
                     >

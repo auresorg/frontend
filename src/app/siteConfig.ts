@@ -12,6 +12,7 @@ export const siteConfig = {
     onboarding: "/onboarding/name",
     roleres: "/dashboard/roleres",
     cusres: "/dashboard/cusres",
+    portfolio: "/dashboard/portfolio",
   },
 }
 
