@@ -19,6 +19,7 @@ import MobileSidebar from "./MobileSidebar"
 import { UserProfileDesktop, UserProfileMobile } from "./UserProfile"
 import Image from "next/image"
 import logo from "@/assets/images/cover.png"
+import { RiPagesLine } from "@remixicon/react"
 
 const navigation = [
     { name: "Overview", href: siteConfig.baseLinks.overview, icon: Flame },
@@ -43,6 +44,7 @@ const navigation = [
 const systemNavigation = [
     { name: "Role Resumes", href: siteConfig.baseLinks.roleres, icon: FileText },
     { name: "Custom Resumes", href: siteConfig.baseLinks.cusres, icon: Hammer },
+    { name: "Portfolio", href: siteConfig.baseLinks.portfolio, icon: RiPagesLine },
 ] as const
 
 interface SidebarProps {

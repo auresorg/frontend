@@ -70,6 +70,7 @@ export async function GET(
                         'name', p.name,
                         'desc', ${SQL_CLEAN("p.description")},
                         'url', p.url,
+                        'repo', p.repo,
                         'tech', p.tech
                     )
                 ), '[]'::json)

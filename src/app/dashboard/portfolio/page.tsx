@@ -12,8 +12,8 @@ const TEMPLATES: Template[] = [
     {
         id: 'default-resume',
         name: 'Modern Resume',
-        description: 'Clean developer resume template built with React',
-        image: 'https://picsum.photos/1280/720',
+        description: 'Clean developer resume template built with Next',
+        image: 'https://raw.githubusercontent.com/auresorg/defaultresume/refs/heads/original/public/preview.png',
         repo: 'https://github.com/auresorg/defaultresume',
     },
 ];
@@ -147,10 +147,6 @@ export default function TemplateMarketplace() {
         setShowDeployDialog(true);
     };
 
-    const handlePreview = (url: string) => {
-        window.open(url, '_blank');
-    };
-
     const handleDialogDeploy = (data: Record<string, string | string[]>) => {
         if (!selectedTemplate) return;
 
@@ -220,14 +216,13 @@ export default function TemplateMarketplace() {
                     {!isClient ? (
                         <LoadingSkeleton />
                     ) : (
-                        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                             {TEMPLATES.map((template) => (
                                 <TemplateCard
                                     key={template.id}
                                     template={template}
                                     isLoading={false}
                                     onDeploy={handleDeployClick}
-                                    onPreview={handlePreview}
                                 />
                             ))}
                         </ul>

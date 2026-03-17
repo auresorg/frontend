@@ -435,6 +435,7 @@ function applyTemplateTransforms(
         });
     }
 
+    upsertTextFile(files, '.nojekyll', '');
     return { siteDomain, customDomain, deployedUrl };
 }
 
