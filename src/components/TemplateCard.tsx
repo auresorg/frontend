@@ -11,14 +11,17 @@ interface TemplateCardProps {
     onDeploy: (templateId: string) => void;
 }
 
+import Image from 'next/image';
+
 export function TemplateCard({ template, isLoading, onDeploy }: TemplateCardProps) {
     return (
         <li>
             <article className="group relative aspect-video overflow-hidden rounded-2xl bg-gray-900/5 dark:bg-gray-900/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                <img
+                <Image
                     src={template.image}
                     alt={template.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                 />
 
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
