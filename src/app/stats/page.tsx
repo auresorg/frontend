@@ -75,9 +75,9 @@ export default async function StatsPage({
         query<{ count: string }>("SELECT count(*) FROM award"),
         query<{ count: string }>("SELECT count(*) FROM education"),
         query<{ count: string }>("SELECT count(*) FROM resumes"),
-        query<{ username: string; firstName: string; lastName: string }>(
-            'SELECT username, "firstName" AS "firstName", "lastName" AS "lastName" FROM users'
-        ).catch(() => query<{ username: string; firstName: string; lastName: string }>('SELECT username, firstName, lastName FROM users')),
+        query<{ username: string; firstname: string; lastname: string }>(
+            'SELECT username, "firstname" AS "firstname", "lastname" AS "lastname" FROM users'
+        ).catch(() => query<{ username: string; firstname: string; lastname: string }>('SELECT username, firstname, lastname FROM users')),
         query<{ school: string }>(
             "SELECT DISTINCT school FROM education WHERE school IS NOT NULL AND school != ''"
         ),
@@ -100,7 +100,7 @@ export default async function StatsPage({
         usersList: usersListResult.map((user) => ({
             username: user.username,
             // Fallbacks in case names are missing
-            fullname: [user["firstName"] || user.firstName, user["lastName"] || user.lastName].filter(Boolean).join(" ") || "Unknown",
+            fullname: [user["firstname"] || user.firstname, user["lastname"] || user.lastname].filter(Boolean).join(" ") || "Unknown",
         })),
         schoolsList: schoolsListResult.map((r) => r.school),
         certsList: certsListResult.map((r) => r.title),

@@ -59,6 +59,33 @@ export function DeployDialog({ open, onOpenChange, template, onDeploy }: DeployD
         }
     }, [open, template]);
 
+    const handleInputChange = (name: string, value: string, type: 'string' | 'array' | 'text', separator?: string) => {
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'array' && separator
+                ? value.split(separator).map(s => s.trim()).filter(Boolean)
+                : value
+        }));
+
+        if (type === 'array' && separator) {
+            const arrValue = value.split(separator).map(s => s.trim()).filter(Boolean);
+            localStorage.setItem(name, JSON.stringify(arrValue));
+        } else {
+            localStorage.setItem(name, value);
+        }
+    };
+
+    const handleCustomDomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setCustomDomain(val);
+        const normalized = val.trim();
+        if (normalized) {
+            localStorage.setItem('portfolioCustomDomain', normalized);
+        } else {
+            localStorage.removeItem('portfolioCustomDomain');
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
@@ -123,11 +150,12 @@ export function DeployDialog({ open, onOpenChange, template, onDeploy }: DeployD
                                 <Input
                                     id={field.name}
                                     name={field.name}
-                                    defaultValue={
+                                    value={
                                         field.type === 'array' && Array.isArray(formData[field.name])
-                                            ? (formData[field.name] as string[]).join(` ${field.separator} `)
+                                            ? (formData[field.name] as string[]).join(`${field.separator || ','} `)
                                             : (formData[field.name] as string) || ''
                                     }
+                                    onChange={(e) => handleInputChange(field.name, e.target.value, field.type, field.separator)}
                                     placeholder={field.description}
                                 />
                             </div>
@@ -142,7 +170,7 @@ export function DeployDialog({ open, onOpenChange, template, onDeploy }: DeployD
                                 id="customDomain"
                                 name="customDomain"
                                 value={customDomain}
-                                onChange={(e) => setCustomDomain(e.target.value)}
+                                onChange={handleCustomDomainChange}
                                 placeholder="example.com"
                             />
                         </div>
