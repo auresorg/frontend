@@ -16,6 +16,13 @@ const TEMPLATES: Template[] = [
         image: 'https://raw.githubusercontent.com/auresorg/defaultresume/refs/heads/original/public/preview.png',
         repo: 'https://github.com/auresorg/defaultresume',
     },
+    {
+        id: 'default-modern',
+        name: 'Default Modern',
+        description: 'Modern developer portfolio template built with Next',
+        image: 'https://raw.githubusercontent.com/auresorg/defaultmodern/refs/heads/original/public/preview.png',
+        repo: 'https://github.com/auresorg/defaultmodern',
+    }
 ];
 
 export default function TemplateMarketplace() {
