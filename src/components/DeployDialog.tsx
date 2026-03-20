@@ -127,7 +127,7 @@ export function DeployDialog({ open, onOpenChange, template, onDeploy }: DeployD
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle className="text-base">Deploy Portfolio</DialogTitle>
                     <DialogDescription>
@@ -138,49 +138,51 @@ export function DeployDialog({ open, onOpenChange, template, onDeploy }: DeployD
                 {loading ? (
                     <div className="py-8 text-center text-gray-500">Loading configuration...</div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                        {fields.map(field => (
-                            <div key={field.name}>
-                                <Label htmlFor={field.name}>
-                                    {field.label}
-                                    {field.description && (
-                                        <span className="text-xs text-gray-500 ml-2">{field.description}</span>
-                                    )}
+                    <div className="overflow-y-auto pr-2 mt-4 flex-1">
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {fields.map(field => (
+                                <div key={field.name}>
+                                    <Label htmlFor={field.name}>
+                                        {field.label}
+                                        {field.description && (
+                                            <span className="text-xs text-gray-500 ml-2">{field.description}</span>
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id={field.name}
+                                        name={field.name}
+                                        value={
+                                            field.type === 'array' && Array.isArray(formData[field.name])
+                                                ? (formData[field.name] as string[]).join(`${field.separator || ','} `)
+                                                : (formData[field.name] as string) || ''
+                                        }
+                                        onChange={(e) => handleInputChange(field.name, e.target.value, field.type, field.separator)}
+                                        placeholder={field.description}
+                                    />
+                                </div>
+                            ))}
+
+                            <div>
+                                <Label htmlFor="customDomain">
+                                    Custom Domain
+                                    <span className="text-xs text-gray-500 ml-2">Optional. Leave blank to use GitHub Pages URL.</span>
                                 </Label>
                                 <Input
-                                    id={field.name}
-                                    name={field.name}
-                                    value={
-                                        field.type === 'array' && Array.isArray(formData[field.name])
-                                            ? (formData[field.name] as string[]).join(`${field.separator || ','} `)
-                                            : (formData[field.name] as string) || ''
-                                    }
-                                    onChange={(e) => handleInputChange(field.name, e.target.value, field.type, field.separator)}
-                                    placeholder={field.description}
+                                    id="customDomain"
+                                    name="customDomain"
+                                    value={customDomain}
+                                    onChange={handleCustomDomainChange}
+                                    placeholder="example.com"
                                 />
                             </div>
-                        ))}
 
-                        <div>
-                            <Label htmlFor="customDomain">
-                                Custom Domain
-                                <span className="text-xs text-gray-500 ml-2">Optional. Leave blank to use GitHub Pages URL.</span>
-                            </Label>
-                            <Input
-                                id="customDomain"
-                                name="customDomain"
-                                value={customDomain}
-                                onChange={handleCustomDomainChange}
-                                placeholder="example.com"
-                            />
-                        </div>
-
-                        <DialogFooter>
-                            <Button type="submit" className="w-full" disabled={loading}>
-                                Continue to GitHub
-                            </Button>
-                        </DialogFooter>
-                    </form>
+                            <DialogFooter>
+                                <Button type="submit" className="w-full" disabled={loading}>
+                                    Continue to GitHub
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </div>
                 )}
             </DialogContent>
         </Dialog>

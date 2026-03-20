@@ -140,9 +140,9 @@ const Layout = ({
                         aria-hidden="true" alt={""} />
                 </div>
                 <StepProgress steps={steps} />
-                <Button variant="ghost" className="ml-auto w-fit" asChild>
+                {/* <Button variant="ghost" className="ml-auto w-fit" asChild>
                     <a href="/dashboard" >Skip to dashboard</a>
-                </Button>
+                </Button> */}
             </header>
             <main id="main-content" className="mx-auto mb-20 mt-28 max-w-lg">
                 {children}
