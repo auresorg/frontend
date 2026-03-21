@@ -77,7 +77,7 @@ export default function PricingTab() {
                                 const { data } = await BaseAPI.post('/api/token/refresh', {});
                                 localStorage.setItem('token', data.token);
                                 updateUser({ ...user, plan: 'free' });
-                            } catch (e) {
+                            } catch {
                                 updateUser({ ...user, plan: 'free' });
                             }
                         }
@@ -116,7 +116,7 @@ export default function PricingTab() {
                     name: "Aures Pro",
                     description: "Professional Plan Subscription",
                     image: "/favicon.ico",
-                    handler: function (response: any) {
+                    handler: function () {
                         toast({ title: "Success", description: "Payment successful! Pro subscription is activating.", variant: "success", duration: 5000 });
 
                         // Wait briefly to allow the backend webhook to mark the user as 'pro'
@@ -125,8 +125,8 @@ export default function PricingTab() {
                                 const { data } = await BaseAPI.post('/api/token/refresh', {});
                                 localStorage.setItem('token', data.token);
                                 updateUser({ ...user, plan: 'pro' });
-                            } catch (e) {
-                                console.error("Failed to refresh token", e);
+                            } catch {
+                                console.error("Failed to refresh token");
                                 // Fallback optimistic update
                                 updateUser({ ...user, plan: 'pro' });
                             }
@@ -142,9 +142,9 @@ export default function PricingTab() {
                     }
                 };
 
-                // @ts-ignore
+                // @ts-expect-error Razorpay is injected globally via next/script
                 const rzp = new window.Razorpay(options);
-                rzp.on('payment.failed', function (response: any) {
+                rzp.on('payment.failed', function (response: { error: { description: string } }) {
                     toast({ title: "Payment Failed", description: response.error.description || "An error occurred", variant: "error" });
                 });
                 rzp.open();

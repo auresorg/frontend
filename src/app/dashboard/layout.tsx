@@ -58,7 +58,7 @@ export default function Layout({
         }
 
         fetchUser()
-    }, [user, setUser, isClient])
+    }, [user, setUser, isClient, PresetDialog])
 
     if (!isClient) return null
 

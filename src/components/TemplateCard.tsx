@@ -1,4 +1,5 @@
 // components/templates/TemplateCard.tsx
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { RiRocketLine, RiLoader2Fill } from '@remixicon/react';
