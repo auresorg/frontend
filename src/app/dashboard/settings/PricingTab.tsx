@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { RiCheckboxCircleFill, RiLoader2Fill } from '@remixicon/react';
 import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
 import { Divider } from '@/components/Divider';
 import { useUserStore } from '@/store/userStore';
 import { BaseAPI, postWithToken } from '@/lib/utils';
@@ -39,6 +40,7 @@ export default function PricingTab() {
     const { user, updateUser } = useUserStore();
     const [loading, setLoading] = useState(false);
     const [cancelLoading, setCancelLoading] = useState(false);
+    const [couponCode, setCouponCode] = useState('');
 
     const handleCancel = () => {
         if (!user) return;
@@ -100,8 +102,9 @@ export default function PricingTab() {
 
         setLoading(true);
         try {
-            // 1. Ask backend to create subscription
-            const res = await postWithToken('/subscription/create', {});
+            // 1. Ask backend to create subscription with optional coupon
+            const payload = couponCode.trim() ? { coupon: couponCode.trim() } : {};
+            const res = await postWithToken('/subscription/create', payload);
 
             if (res?.status === 200 && res.data) {
                 const { subscription_id, key_id } = res.data;
@@ -227,6 +230,17 @@ export default function PricingTab() {
                         ))}
                     </ul>
                     <Divider />
+                    {!isPro && (
+                        <div className="mb-4">
+                            <Input
+                                placeholder="Have a promo code?"
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value)}
+                                className="w-full text-sm font-medium focus:ring-2"
+                                disabled={loading}
+                            />
+                        </div>
+                    )}
                     {isPro ? (
                         <Button
                             className="h-10 w-full"
