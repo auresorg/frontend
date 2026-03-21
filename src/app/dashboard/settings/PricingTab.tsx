@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { RiCheckboxCircleFill } from '@remixicon/react';
+import { RiCheckboxCircleFill, RiLoader2Fill } from '@remixicon/react';
 import { Button } from '@/components/Button';
 import { Divider } from '@/components/Divider';
 import { useUserStore } from '@/store/userStore';
@@ -38,6 +38,61 @@ const features = [
 export default function PricingTab() {
     const { user, updateUser } = useUserStore();
     const [loading, setLoading] = useState(false);
+    const [cancelLoading, setCancelLoading] = useState(false);
+
+    const handleCancel = () => {
+        if (!user) return;
+        if (cancelLoading) return;
+
+        const confirmToast = toast({
+            title: "Cancel Subscription?",
+            description: "Are you sure you want to cancel your pro subscription? You'll lose access to all premium features.",
+            variant: "error",
+            action: {
+                label: "Confirm Cancel",
+                altText: "Confirm Cancel",
+                onClick: async () => {
+                    confirmToast.update({
+                        action: {
+                            altText: "Cancelling",
+                            onClick: () => { },
+                            label: (
+                                <span className="pointer-events-none flex shrink-0 items-center justify-center gap-1.5">
+                                    <RiLoader2Fill className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+                                    Cancelling...
+                                </span>
+                            )
+                        }
+                    });
+
+                    setCancelLoading(true);
+                    try {
+                        const res = await postWithToken('/subscription/cancel', {});
+                        if (res?.status === 200) {
+                            confirmToast.dismiss();
+                            toast({ title: "Success", description: "Subscription cancelled successfully.", variant: "success", duration: 5000 });
+                            try {
+                                const { data } = await BaseAPI.post('/api/token/refresh', {});
+                                localStorage.setItem('token', data.token);
+                                updateUser({ ...user, plan: 'free' });
+                            } catch (e) {
+                                updateUser({ ...user, plan: 'free' });
+                            }
+                        }
+                    } catch (err) {
+                        confirmToast.dismiss();
+                        if (isAxiosError(err)) {
+                            toast({ title: "Error", description: err.response?.data?.error || "Failed to cancel subscription", variant: "error" });
+                        } else {
+                            toast({ title: "Error", description: "An unexpected error occurred", variant: "error" });
+                        }
+                    } finally {
+                        setCancelLoading(false);
+                    }
+                }
+            }
+        });
+    };
 
     const handleSubscribe = async () => {
         if (!user) return;
@@ -172,14 +227,24 @@ export default function PricingTab() {
                         ))}
                     </ul>
                     <Divider />
-                    <Button
-                        className="h-10 w-full"
-                        onClick={handleSubscribe}
-                        isLoading={loading}
-                        disabled={isPro}
-                    >
-                        {isPro ? 'Active Subscription' : 'Upgrade'}
-                    </Button>
+                    {isPro ? (
+                        <Button
+                            className="h-10 w-full"
+                            variant="secondary"
+                            onClick={handleCancel}
+                            disabled={cancelLoading}
+                        >
+                            Cancel Subscription
+                        </Button>
+                    ) : (
+                        <Button
+                            className="h-10 w-full"
+                            onClick={handleSubscribe}
+                            isLoading={loading}
+                        >
+                            Upgrade
+                        </Button>
+                    )}
                 </div>
             </div>
         </div>

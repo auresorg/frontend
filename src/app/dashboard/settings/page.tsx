@@ -187,7 +187,9 @@ export default function Settings() {
                     <TabsTrigger value="account" className="whitespace-nowrap flex-1">Account</TabsTrigger>
                     <TabsTrigger value="education" className="whitespace-nowrap flex-1">Education</TabsTrigger>
                     <TabsTrigger value="privacy" className="whitespace-nowrap flex-1">Privacy</TabsTrigger>
-                    <TabsTrigger value="pricing" className="whitespace-nowrap flex-1">Pricing</TabsTrigger>
+                    <TabsTrigger value="pricing" className="whitespace-nowrap flex-1">
+                        {user?.plan == "pro" ? "Plan" : "Upgrade"}
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* --- ACCOUNT TAB --- */}
