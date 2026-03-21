@@ -16,6 +16,7 @@ import { isAxiosError } from 'axios';
 import { usePresetDialog } from '@/lib/dialogs';
 import { toast } from '@/lib/useToast';
 import { Switch } from '@/components/Switch';
+import PricingTab from './PricingTab';
 
 export default function Settings() {
     // --- STORES ---
@@ -182,10 +183,11 @@ export default function Settings() {
             <p className="mt-2 text-sm/6 text-gray-500 dark:text-gray-500">Manage your personal details, education and privacy.</p>
 
             <Tabs defaultValue="account" className="mt-6" onValueChange={handleTabChange}>
-                <TabsList variant="line" className="w-full">
-                    <TabsTrigger value="account" className="flex-1">Account</TabsTrigger>
-                    <TabsTrigger value="education" className="flex-1">Education</TabsTrigger>
-                    <TabsTrigger value="privacy" className="flex-1">Privacy</TabsTrigger>
+                <TabsList variant="line" className="w-full overflow-x-auto overflow-y-hidden flex-nowrap hide-scrollbar">
+                    <TabsTrigger value="account" className="whitespace-nowrap flex-1">Account</TabsTrigger>
+                    <TabsTrigger value="education" className="whitespace-nowrap flex-1">Education</TabsTrigger>
+                    <TabsTrigger value="privacy" className="whitespace-nowrap flex-1">Privacy</TabsTrigger>
+                    <TabsTrigger value="pricing" className="whitespace-nowrap flex-1">Pricing</TabsTrigger>
                 </TabsList>
 
                 {/* --- ACCOUNT TAB --- */}
@@ -352,6 +354,13 @@ export default function Settings() {
                                 <div className="pb-2"></div>
                             </div>
                         )}
+                    </div>
+                </TabsContent>
+
+                {/* --- PRICING TAB --- */}
+                <TabsContent value="pricing" className="mt-6">
+                    <div className="overflow-y-auto pr-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+                        <PricingTab />
                     </div>
                 </TabsContent>
             </Tabs>
