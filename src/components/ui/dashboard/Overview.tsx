@@ -9,6 +9,8 @@ import LeetcodeCard from './LeetcodeCard';
 import { useActivityStore } from '@/store/activityStore';
 import { Graph } from './Graph';
 import SkillsCard from './SkillsCard'; // Import the new SkillsCard
+import NotificationBar from './NotificationBar';
+
 
 export default function Overview() {
     const user = useUserStore((state) => state.user);
@@ -86,7 +88,11 @@ export default function Overview() {
                 />
             </div>
 
+            {/* Notifications taking full width */}
+            <NotificationBar />
+
             {/* Second row: Graph in 2 columns, Skills card in 1 column */}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                     <Graph />

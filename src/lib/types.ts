@@ -119,3 +119,10 @@ export interface Template {
     image: string;
     repo: string;
 }
+
+export interface Notification {
+    id: number;
+    message: string;
+    icon: string | null;
+    createdAt: string;
+}
