@@ -3,6 +3,7 @@
 import { Button } from '@/components/Button';
 import { Divider } from '@/components/Divider';
 import { Input } from '@/components/Input';
+import { Autocomplete } from '@/components/Autocomplete';
 import { Label } from '@/components/Label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/Tabs';
 import { Textarea } from '@/components/Textarea';
@@ -284,10 +285,10 @@ export default function Settings() {
                         ) : (
                             <div className="space-y-6">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div><Label htmlFor="esc">School/University</Label><Input id="esc" value={educationData.school} onChange={(e) => setEducationData({ ...educationData, school: e.target.value })} placeholder="University" className="mt-2" hasError={error === 'school'} /></div>
-                                    <div><Label htmlFor="edg">Degree</Label><Input id="edg" value={educationData.degree} onChange={(e) => setEducationData({ ...educationData, degree: e.target.value })} className="mt-2" hasError={error === 'degree'} placeholder='e.g. B.Tech' /></div>
+                                    <div><Label htmlFor="esc">School/University</Label><Autocomplete typeQuery="school" id="esc" value={educationData.school} onChange={(e) => setEducationData({ ...educationData, school: e.target.value })} onValueChange={(val) => setEducationData({ ...educationData, school: val })} placeholder="University" className="mt-2" hasError={error === 'school'} /></div>
+                                    <div><Label htmlFor="edg">Degree</Label><Autocomplete typeQuery="degree" id="edg" value={educationData.degree} onChange={(e) => setEducationData({ ...educationData, degree: e.target.value })} onValueChange={(val) => setEducationData({ ...educationData, degree: val })} className="mt-2" hasError={error === 'degree'} placeholder='e.g. B.Tech' /></div>
                                 </div>
-                                <div><Label htmlFor="efd">Field of Study</Label><Input id="efd" value={educationData.field} onChange={(e) => setEducationData({ ...educationData, field: e.target.value })} className="mt-2" hasError={error === 'field'} placeholder="Computer Science" /></div>
+                                <div><Label htmlFor="efd">Field of Study</Label><Autocomplete typeQuery="field" id="efd" value={educationData.field} onChange={(e) => setEducationData({ ...educationData, field: e.target.value })} onValueChange={(val) => setEducationData({ ...educationData, field: val })} className="mt-2" hasError={error === 'field'} placeholder="Computer Science" /></div>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div><Label htmlFor="esd">Start Date</Label><Input id="esd" type="date" value={educationData.startDate} onChange={(e) => setEducationData({ ...educationData, startDate: e.target.value })} className="mt-2" hasError={error === 'startDate'} /></div>
                                     <div><Label htmlFor="eed">End Date</Label><Input id="eed" type="date" value={educationData.endDate} onChange={(e) => setEducationData({ ...educationData, endDate: e.target.value })} className="mt-2" hasError={error === 'endDate'} /></div>

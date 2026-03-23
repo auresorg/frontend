@@ -15,6 +15,7 @@ import {
 } from '@/components/Dialog';
 import { Label } from '@/components/Label';
 import { Input } from '@/components/Input';
+import { Autocomplete } from '@/components/Autocomplete';
 import { Textarea } from '@/components/Textarea';
 import { useFormState } from '@/lib/hooks/useFormState';
 import { useEntitySubmit } from '@/lib/hooks/useEntitySubmit';
@@ -221,6 +222,31 @@ export default function AddEntityDialog({ config }: AddEntityDialogProps) {
                         placeholder={field.placeholder}
                         className="mt-2 resize-vertical min-h-20"
                         rows={field.rows || 3}
+                        required={isRequired}
+                        hasError={error === field.name}
+                        disabled={disabled}
+                    />
+                </div>
+            );
+        }
+
+        // Autocomplete
+        if (field.type === 'autocomplete') {
+            return (
+                <div key={field.name}>
+                    <Label htmlFor={field.name} className="font-medium text-sm">
+                        {label} {isRequired && <span style={{ color: "red" }}>*</span>}
+                    </Label>
+                    <Autocomplete
+                        typeQuery={field.autocompleteType!}
+                        id={field.name}
+                        name={field.name}
+                        value={formData[field.name] as string}
+                        onValueChange={(val, payload) => {
+                            setFormState({ ...formData, [field.name]: val, ...(payload || {}) })
+                        }}
+                        placeholder={field.placeholder}
+                        className="mt-2"
                         required={isRequired}
                         hasError={error === field.name}
                         disabled={disabled}

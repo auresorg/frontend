@@ -7,7 +7,8 @@ export type Entity = Award | Certification | Project | Experience;
 export interface FormField {
     name: string;
     label: string;
-    type: 'text' | 'textarea' | 'date' | 'url' | 'file';
+    type: 'text' | 'textarea' | 'date' | 'url' | 'file' | 'autocomplete';
+    autocompleteType?: string;
     placeholder?: string;
     required?: boolean;
     helperText?: string;
@@ -109,7 +110,8 @@ export const ENTITY_CONFIGS: Record<EntityType, EntityConfig> = {
             {
                 name: 'title',
                 label: 'Certificate Title',
-                type: 'text',
+                type: 'autocomplete',
+                autocompleteType: 'certification-title',
                 placeholder: 'Enter certificate title',
                 required: true,
             },
@@ -231,14 +233,16 @@ export const ENTITY_CONFIGS: Record<EntityType, EntityConfig> = {
             {
                 name: 'title',
                 label: 'Job Title',
-                type: 'text',
+                type: 'autocomplete',
+                autocompleteType: 'experience-title',
                 placeholder: 'e.g., Software Engineer',
                 required: true,
             },
             {
                 name: 'company',
                 label: 'Company',
-                type: 'text',
+                type: 'autocomplete',
+                autocompleteType: 'experience-company',
                 placeholder: 'Company name',
                 required: true,
             },
