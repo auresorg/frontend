@@ -221,14 +221,12 @@ export async function POST(req: NextRequest) {
             parseCompletion.choices[0].message!.content!
         )
 
-        let {
+        const {
             projects = [],
             experience = [],
             certifications = [],
             awards = [],
-            // eslint-disable-next-line prefer-const
             education,
-            // eslint-disable-next-line prefer-const
             user,
         } = parsedResume
 

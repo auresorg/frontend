@@ -3,6 +3,7 @@
 import { Button } from '@/components/Button';
 import { Divider } from '@/components/Divider';
 import { Input } from '@/components/Input';
+import { Autocomplete } from '@/components/Autocomplete';
 import { Label } from '@/components/Label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/Tabs';
 import { Textarea } from '@/components/Textarea';
@@ -16,6 +17,7 @@ import { isAxiosError } from 'axios';
 import { usePresetDialog } from '@/lib/dialogs';
 import { toast } from '@/lib/useToast';
 import { Switch } from '@/components/Switch';
+import PricingTab from './PricingTab';
 
 export default function Settings() {
     // --- STORES ---
@@ -182,10 +184,13 @@ export default function Settings() {
             <p className="mt-2 text-sm/6 text-gray-500 dark:text-gray-500">Manage your personal details, education and privacy.</p>
 
             <Tabs defaultValue="account" className="mt-6" onValueChange={handleTabChange}>
-                <TabsList variant="line" className="w-full">
-                    <TabsTrigger value="account" className="flex-1">Account</TabsTrigger>
-                    <TabsTrigger value="education" className="flex-1">Education</TabsTrigger>
-                    <TabsTrigger value="privacy" className="flex-1">Privacy</TabsTrigger>
+                <TabsList variant="line" className="w-full overflow-x-auto overflow-y-hidden flex-nowrap hide-scrollbar">
+                    <TabsTrigger value="account" className="whitespace-nowrap flex-1">Account</TabsTrigger>
+                    <TabsTrigger value="education" className="whitespace-nowrap flex-1">Education</TabsTrigger>
+                    <TabsTrigger value="privacy" className="whitespace-nowrap flex-1">Privacy</TabsTrigger>
+                    <TabsTrigger value="pricing" className="whitespace-nowrap flex-1">
+                        {user?.plan == "pro" ? "Plan" : "Upgrade"}
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* --- ACCOUNT TAB --- */}
@@ -280,10 +285,10 @@ export default function Settings() {
                         ) : (
                             <div className="space-y-6">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div><Label htmlFor="esc">School/University</Label><Input id="esc" value={educationData.school} onChange={(e) => setEducationData({ ...educationData, school: e.target.value })} placeholder="University" className="mt-2" hasError={error === 'school'} /></div>
-                                    <div><Label htmlFor="edg">Degree</Label><Input id="edg" value={educationData.degree} onChange={(e) => setEducationData({ ...educationData, degree: e.target.value })} className="mt-2" hasError={error === 'degree'} placeholder='e.g. B.Tech' /></div>
+                                    <div><Label htmlFor="esc">School/University</Label><Autocomplete typeQuery="school" id="esc" value={educationData.school} onChange={(e) => setEducationData({ ...educationData, school: e.target.value })} onValueChange={(val) => setEducationData({ ...educationData, school: val })} placeholder="University" className="mt-2" hasError={error === 'school'} /></div>
+                                    <div><Label htmlFor="edg">Degree</Label><Autocomplete typeQuery="degree" id="edg" value={educationData.degree} onChange={(e) => setEducationData({ ...educationData, degree: e.target.value })} onValueChange={(val) => setEducationData({ ...educationData, degree: val })} className="mt-2" hasError={error === 'degree'} placeholder='e.g. B.Tech' /></div>
                                 </div>
-                                <div><Label htmlFor="efd">Field of Study</Label><Input id="efd" value={educationData.field} onChange={(e) => setEducationData({ ...educationData, field: e.target.value })} className="mt-2" hasError={error === 'field'} placeholder="Computer Science" /></div>
+                                <div><Label htmlFor="efd">Field of Study</Label><Autocomplete typeQuery="field" id="efd" value={educationData.field} onChange={(e) => setEducationData({ ...educationData, field: e.target.value })} onValueChange={(val) => setEducationData({ ...educationData, field: val })} className="mt-2" hasError={error === 'field'} placeholder="Computer Science" /></div>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div><Label htmlFor="esd">Start Date</Label><Input id="esd" type="date" value={educationData.startDate} onChange={(e) => setEducationData({ ...educationData, startDate: e.target.value })} className="mt-2" hasError={error === 'startDate'} /></div>
                                     <div><Label htmlFor="eed">End Date</Label><Input id="eed" type="date" value={educationData.endDate} onChange={(e) => setEducationData({ ...educationData, endDate: e.target.value })} className="mt-2" hasError={error === 'endDate'} /></div>
@@ -352,6 +357,13 @@ export default function Settings() {
                                 <div className="pb-2"></div>
                             </div>
                         )}
+                    </div>
+                </TabsContent>
+
+                {/* --- PRICING TAB --- */}
+                <TabsContent value="pricing" className="mt-6">
+                    <div className="overflow-y-auto pr-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+                        <PricingTab />
                     </div>
                 </TabsContent>
             </Tabs>

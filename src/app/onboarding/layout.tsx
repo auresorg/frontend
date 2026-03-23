@@ -1,5 +1,4 @@
 "use client"
-import { Button } from "@/components/Button"
 import useScroll from "@/lib/useScroll"
 import { cx } from "@/lib/utils"
 import { usePathname } from "next/navigation"

@@ -48,7 +48,7 @@ function Nav() {
         window.addEventListener('scroll', handleScroll);
         setTimeout(handleScroll, 100);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [navLinks]);
+    }, []);
 
     useEffect(() => {
         if (!linksRef.current) return;
