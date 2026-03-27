@@ -41,10 +41,21 @@ export default function TemplateMarketplace() {
     const oauthErrorDescription = searchParams.get('error_description');
 
     const pendingDeployKey = 'portfolioDeployPending';
+    const deployedPortfolioKey = 'deployedPortfolio';
+
+    const [deployedInfo, setDeployedInfo] = useState<{ templateId: string; url: string } | null>(null);
 
     useEffect(() => {
         setIsClient(true);
-    }, []);
+        const stored = localStorage.getItem(deployedPortfolioKey);
+        if (stored) {
+            try {
+                setDeployedInfo(JSON.parse(stored));
+            } catch (e) {
+                console.error('Failed to parse deployed portfolio info', e);
+            }
+        }
+    }, [isClient]);
 
     useEffect(() => {
         if (!isClient) return;
@@ -74,6 +85,7 @@ export default function TemplateMarketplace() {
 
         let pending: {
             state: string;
+            templateId: string;
             templateRepo: string;
             config: Record<string, string | string[]>;
         };
@@ -114,7 +126,13 @@ export default function TemplateMarketplace() {
                     throw new Error(data.error || 'Deployment failed');
                 }
 
-                setDeploySuccessUrl(data.deployedUrl || data.pagesUrl || null);
+                const url = data.deployedUrl || data.pagesUrl || null;
+                setDeploySuccessUrl(url);
+                if (url) {
+                    const newDeployedInfo = { templateId: pending.templateId, url };
+                    setDeployedInfo(newDeployedInfo);
+                    localStorage.setItem(deployedPortfolioKey, JSON.stringify(newDeployedInfo));
+                }
                 localStorage.removeItem(pendingDeployKey);
             } catch (error) {
                 const message = error instanceof Error ? error.message : 'Deployment failed unexpectedly';
@@ -168,6 +186,7 @@ export default function TemplateMarketplace() {
             pendingDeployKey,
             JSON.stringify({
                 state,
+                templateId: selectedTemplate.id,
                 templateRepo: selectedTemplate.repo,
                 config: data,
             })
@@ -223,12 +242,14 @@ export default function TemplateMarketplace() {
                     {!isClient ? (
                         <LoadingSkeleton />
                     ) : (
-                        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2 mt-2">
                             {TEMPLATES.map((template) => (
                                 <TemplateCard
                                     key={template.id}
                                     template={template}
                                     isLoading={false}
+                                    isDeployed={deployedInfo?.templateId === template.id}
+                                    deployedUrl={deployedInfo?.templateId === template.id ? deployedInfo.url : null}
                                     onDeploy={handleDeployClick}
                                 />
                             ))}

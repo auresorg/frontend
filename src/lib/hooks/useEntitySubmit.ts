@@ -41,8 +41,17 @@ export function useEntitySubmit({ entityType, endpoint, onSuccess, onError }: Us
                         : precreate.data.description;
             }
             
+            const VALID_ROLES = ['frontend', 'backend', 'fullstack', 'devops', 'mobile', 'aiml', 'product', 'qa', 'designer', 'blockchain'];
+            
             if (precreate.data.role) {
-                enhancedData.role = precreate.data.role;
+                const aiRole = String(precreate.data.role).toLowerCase();
+                if (VALID_ROLES.includes(aiRole)) {
+                    enhancedData.role = [aiRole];
+                } else {
+                    enhancedData.role = ['fullstack'];
+                }
+            } else {
+                enhancedData.role = ['fullstack'];
             }
 
             // Create entity
