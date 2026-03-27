@@ -291,7 +291,7 @@ export const roles = [
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export const postBaseWithRetry = async (url: string, data: Record<string, unknown>, retries = 3, delay = 1000) => {
+export const postBaseWithRetry = async (url: string, data: Record<string, unknown>, retries = 3, delay = 2000) => {
     let lastError;
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
@@ -310,7 +310,7 @@ export const postBaseWithRetry = async (url: string, data: Record<string, unknow
     throw lastError;
 };
 
-export const getWithTokenRetry = async (url: string, retries = 3, delay = 1000) => {
+export const getWithTokenRetry = async (url: string, retries = 3, delay = 2000) => {
     let lastError;
 
     for (let attempt = 1; attempt <= retries; attempt++) {
